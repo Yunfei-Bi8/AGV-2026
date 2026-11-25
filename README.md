@@ -153,3 +153,7 @@ bit for bit.
   year    = {2026}
 }
 ```
+
+## License
+
+MIT License, see [LICENSE](LICENSE). Copyright (c) 2026 Yunfei Bi.
