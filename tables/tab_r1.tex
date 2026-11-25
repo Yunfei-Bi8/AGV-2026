@@ -1,0 +1,27 @@
+\begin{table}[htbp]\centering\small
+\caption{Heterogeneous sinusoidal delays of \cite{peng2023} on the model of the theorems; mean [95\,\% bootstrap CI] over 30 seeds; $p$: Wilcoxon signed-rank test against the cascade (formation IAE), Holm-corrected.}\label{tab:r1}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{@{}llcccc@{}}\toprule
+Scenario / case & Controller & formation IAE (mm\,s) & tracking IAE (mm\,s) & peak formation (mm) & $p$\\\midrule
+transport / initial errors & Cascade & 762 [683, 838] & 651 [556, 762] & 381 [350, 409] & --\\
+ & Direct & 1093 [990, 1190] & 583 [546, 620] & 381 [351, 410] & $<$0.001\\
+ & $\sigma$-leak & 562 [504, 617] & 311 [289, 332] & 380 [350, 409] & $<$0.001\\
+ & No coupling & 1343 [1218, 1465] & 662 [619, 704] & 383 [354, 411] & $<$0.001\\
+\addlinespace
+transport / traction loss & Cascade & 1233 [1153, 1310] & 1198 [1101, 1309] & 384 [356, 411] & --\\
+ & Direct & 1486 [1381, 1586] & 863 [827, 899] & 382 [352, 410] & $<$0.001\\
+ & $\sigma$-leak & 912 [851, 971] & 512 [487, 536] & 380 [350, 409] & $<$0.001\\
+ & No coupling & 2058 [1933, 2182] & 900 [857, 943] & 401 [381, 420] & $<$0.001\\
+\addlinespace
+figure-8 / initial errors & Cascade & 608 [548, 671] & 558 [481, 642] & 383 [353, 411] & --\\
+ & Direct & 841 [760, 925] & 461 [426, 495] & 384 [355, 411] & $<$0.001\\
+ & $\sigma$-leak & 454 [409, 498] & 254 [235, 273] & 381 [350, 409] & $<$0.001\\
+ & No coupling & 1003 [910, 1100] & 495 [465, 525] & 386 [358, 413] & $<$0.001\\
+\addlinespace
+figure-8 / traction loss & Cascade & 1090 [1020, 1160] & 1102 [1004, 1200] & 388 [362, 413] & --\\
+ & Direct & 1238 [1158, 1319] & 724 [685, 761] & 384 [356, 411] & $<$0.001\\
+ & $\sigma$-leak & 821 [771, 870] & 467 [438, 493] & 381 [350, 409] & $<$0.001\\
+ & No coupling & 1696 [1591, 1801] & 726 [692, 759] & 410 [390, 428] & $<$0.001\\
+\bottomrule\end{tabular}
+\end{adjustbox}
+\end{table}

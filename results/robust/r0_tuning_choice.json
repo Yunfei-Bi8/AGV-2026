@@ -1,0 +1,11 @@
+{
+ "cascade": {
+  "Lam": 1.0
+ },
+ "sigleak": {
+  "Lam": 1.0
+ },
+ "direct": {
+  "c": 0.5
+ }
+}

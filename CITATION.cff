@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+title: "Delay-Tolerant Formation Tracking for Multi-AGV Systems via Reference-Shift Coupling: simulation code"
+authors:
+  - family-names: Bi
+    given-names: Yunfei
+repository-code: "https://github.com/Yunfei-Bi8/AGV-2026"
+url: "https://bi-yunfei.github.io/agv-formation/"
+preferred-citation:
+  type: article
+  title: "Delay-Tolerant Formation Tracking for Multi-AGV Systems via Reference-Shift Coupling"
+  authors:
+    - family-names: Bi
+      given-names: Yunfei
+  journal: "arXiv preprint arXiv:2611.32409"
+  year: 2026
+  url: "https://arxiv.org/abs/2611.32409"

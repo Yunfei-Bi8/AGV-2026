@@ -1,0 +1,128 @@
+{
+ "cascade": {
+  "param": "Lam",
+  "rows": [
+   {
+    "value": 0.25,
+    "form_ratio": 0.8908479587459895,
+    "track_ratio": 1.0136194086232153,
+    "failed": 0
+   },
+   {
+    "value": 0.5,
+    "form_ratio": 0.8469407626507748,
+    "track_ratio": 1.0856468370773662,
+    "failed": 0
+   },
+   {
+    "value": 1.0,
+    "form_ratio": 0.822445069391763,
+    "track_ratio": 1.2929575099311053,
+    "failed": 0
+   },
+   {
+    "value": 2.0,
+    "form_ratio": 0.8820043716308492,
+    "track_ratio": 1.8466990841966335,
+    "failed": 0
+   },
+   {
+    "value": 4.0,
+    "form_ratio": 1.1739874445483816,
+    "track_ratio": 3.927132658363823,
+    "failed": 0
+   },
+   {
+    "value": 8.0,
+    "form_ratio": 1.8032412206165283,
+    "track_ratio": 21.03274985749319,
+    "failed": 0
+   }
+  ],
+  "best": 1.0
+ },
+ "sigleak": {
+  "param": "Lam",
+  "rows": [
+   {
+    "value": 0.25,
+    "form_ratio": 1.0725398882398138,
+    "track_ratio": 1.0772526460887175,
+    "failed": 0
+   },
+   {
+    "value": 0.5,
+    "form_ratio": 1.1682711900179072,
+    "track_ratio": 1.2778963328893453,
+    "failed": 0
+   },
+   {
+    "value": 1.0,
+    "form_ratio": 1.0007235255043603,
+    "track_ratio": 1.1887969815266026,
+    "failed": 0
+   },
+   {
+    "value": 2.0,
+    "form_ratio": 6.977880171852985,
+    "track_ratio": 8.578156397300992,
+    "failed": 1
+   },
+   {
+    "value": 4.0,
+    "form_ratio": 9.155264458012796,
+    "track_ratio": 11.388400284629451,
+    "failed": 0
+   },
+   {
+    "value": 8.0,
+    "form_ratio": 9.608311044142773,
+    "track_ratio": 12.68011710662876,
+    "failed": 0
+   }
+  ],
+  "best": 1.0
+ },
+ "direct": {
+  "param": "c",
+  "rows": [
+   {
+    "value": 0.1,
+    "form_ratio": 0.9151928592039493,
+    "track_ratio": 0.9713101262309415,
+    "failed": 0
+   },
+   {
+    "value": 0.25,
+    "form_ratio": 0.8516249966566727,
+    "track_ratio": 0.969954893290174,
+    "failed": 0
+   },
+   {
+    "value": 0.5,
+    "form_ratio": 0.8071665545315388,
+    "track_ratio": 0.9917893649774043,
+    "failed": 0
+   },
+   {
+    "value": 1.0,
+    "form_ratio": 0.8051264384353227,
+    "track_ratio": 1.0293298883422535,
+    "failed": 7
+   },
+   {
+    "value": 2.0,
+    "form_ratio": 1.073000045901908,
+    "track_ratio": 1.7727479521532565,
+    "failed": 10
+   },
+   {
+    "value": 4.0,
+    "form_ratio": 11.39184930258545,
+    "track_ratio": 55.81385411245432,
+    "failed": 19
+   }
+  ],
+  "best": 0.5
+ }
+}
