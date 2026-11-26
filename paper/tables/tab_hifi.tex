@@ -1,5 +1,5 @@
 \begin{table}[t]
-\caption{Main results on the high-fidelity model: means over 30 (R2) and 20 (R6) seeds; R5: medians and 95th percentile of the whole-run IAE relative to no coupling over the random draws without failure. $^\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, Holm-corrected)}\label{tab:hifi}
+\caption{Main results on the high-fidelity model: means over 30 (R2) and 20 (R6) seeds on the warehouse route; R5: medians and 95th percentile of the whole-run IAE relative to no coupling over the random draws without failure; R7, R7b: complete graphs. $^\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, for R5 on log ratios; Holm-corrected within each row)}\label{tab:hifi}
 \centering\footnotesize
 \setlength{\tabcolsep}{2.4pt}
 \begin{tabular}{@{}lcccc@{}}
@@ -13,9 +13,9 @@ Traction loss (R6): peak (mm) & 517$^\dagger$ & 649$^\dagger$ & 331$^\dagger$ & 
 Safety stop (R6): peak (mm) & 2287$^\dagger$ & 1407$^\dagger$ & 1574$^\dagger$ & 1341\\
 \quad formation IAE (m$\cdot$s) & 10.06$^\dagger$ & 9.16$^\dagger$ & 6.83$^\dagger$ & 5.35\\
 \quad tracking IAE (m$\cdot$s) & 3.47$^\dagger$ & 9.91$^\dagger$ & 5.59$^\dagger$ & 6.78\\
-Random draws (R5): formation & 1 & 2.34$^\dagger$ & 0.88$^\dagger$ & 0.89\\
-\quad formation, 95th percentile & -- & 16.85 & 2.33 & 1.24\\
-\quad tracking & 1 & 2.36$^\dagger$ & 1.00$^\dagger$ & 1.24\\
+Random draws (R5): formation & 1$^\dagger$ & 2.34$^\dagger$ & 0.88 & 0.89\\
+\quad formation, 95th percentile & 1 & 16.85 & 2.33 & 1.24\\
+\quad tracking & 1$^\dagger$ & 2.36$^\dagger$ & 1.00$^\dagger$ & 1.24\\
 Failed: all tuning gains (R0) & 0/20 & 1/120 & 36/120 & 0/120\\
 \quad $N=8$, 12, unit weights (R7) & 0/12 & -- & 12/12 & 0/12\\
 \quad $N=8$, 12, normalized (R7b) & -- & -- & 0/12 & 0/12\\

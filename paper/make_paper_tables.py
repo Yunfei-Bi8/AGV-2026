@@ -1,17 +1,18 @@
-"""LaTeX tables of the paper (arXiv v2 numbering) from the stored results; nothing is simulated.
+"""LaTeX tables from the stored results; nothing is simulated.
 
     python3 paper/make_paper_tables.py        # -> paper/tables/*.tex
 
-Table I    tab_verif.tex    worst cases of the verification (E3: results/e3_summary.json)
-Table II   tab_hifi.tex     main results on the high-fidelity model (R0, R2, R5, R6, R7, R7b); tab_hifi_cdc.tex: the same
-                            table without experiment labels for the conference version
-Table IV   tab_scale.tex    rate per meter of Lemma 2 (E1: results/e1_prop1.json)
-Table V    tab_rates.tex    rate of Lemma 3 for a constant delay (E2: results/e2_lemma2.json)
-Table VI   tab_meas.tex     measured decay rates (E3)
-Table VII  tab_slip.tex     traction loss on the kinematic model (E5: results/e5_formation.json)
-Tables IX-XI tab_r5, tab_r6, tab_r7b (robustness study, through the table functions of
-           experiments/robust/make_figures_robust.py; the remaining tables of the study are in tables/)
-Tables III and VIII describe the setup and are written by hand in the paper."""
+The paper (arXiv v2) has one table:
+Table I    tab_hifi_cdc.tex  main results on the high-fidelity model (R0, R2, R5, R6, R7, R7b)
+The other outputs document the study and are not part of the paper:
+           tab_hifi.tex      Table I with experiment labels
+           tab_verif.tex     worst cases of the verification (E3: results/e3_summary.json)
+           tab_scale.tex     rate per meter of Lemma 2 (E1: results/e1_prop1.json)
+           tab_rates.tex     rate of Lemma 3 for a constant delay (E2: results/e2_lemma2.json)
+           tab_meas.tex      measured decay rates (E3)
+           tab_slip.tex      traction loss on the kinematic model (E5: results/e5_formation.json)
+           tab_r5, tab_r6, tab_r7b  tables of R5, R6 and R7b (table functions of experiments/robust/make_figures_robust.py;
+                             the remaining tables of the study are in tables/)"""
 import json
 import math
 import os
@@ -102,22 +103,23 @@ def r5_ratios():
         out[typ] = dict(form_med=float(np.median(fr)), form_p95=float(np.quantile(fr, 0.95)), track_med=float(np.median(tr)),
                         failed=int(sum(by[(s, typ)]['m_failed'] for s in seeds)), n=len(seeds), n_ok=len(ok))
     out['uncoupled'] = dict(failed=int(sum(by[(s, 'uncoupled')]['m_failed'] for s in seeds)), n=len(seeds))
-    # paired tests against the cascade (whole-run IAE, draws in which both did not fail), Holm over the three laws
+    # paired tests against the cascade on the log ratios of the whole-run IAE (the quantity shown in Table I), draws in
+    # which both did not fail, Holm over the three laws
     for key in ('m_form_iae', 'm_track_iae'):
         ps = {}
         for typ in ('uncoupled', 'sigleak', 'direct'):
             ok = [s for s in seeds if not by[(s, typ)]['m_failed'] and not by[(s, 'cascade')]['m_failed']]
-            ps[typ] = paired_test([by[(s, 'cascade')][key] for s in ok], [by[(s, typ)][key] for s in ok])[0]
+            ps[typ] = paired_test(np.log([by[(s, 'cascade')][key] for s in ok]), np.log([by[(s, typ)][key] for s in ok]))[0]
         for typ, pa in zip(ps, holm(list(ps.values()))):
             out.setdefault(typ, {})['p_' + key] = float(pa)
     return out
 
 
-SIG = 0.01          # marks in Table II: paired difference from the cascade, Holm-corrected p < SIG
+SIG = 0.01          # marks in Table I: paired difference from the cascade, Holm-corrected p < SIG
 
 
 def tab_hifi():
-    """Table II (extended and conference version): four laws, rows labeled by experiment; a dagger marks a paired
+    """Table I of the paper (tab_hifi_cdc.tex) and its variant with experiment labels (tab_hifi.tex): four laws; a dagger marks a paired
     difference from the cascade (two-sided Wilcoxon signed-rank test, Holm correction over the three comparisons)."""
     S = json.load(open(os.path.join(RESR, 'summary.json')))
     r0 = json.load(open(os.path.join(RESR, 'r0_tuning_summary.json')))
@@ -160,9 +162,9 @@ def tab_hifi():
         ('Safety stop (R6): peak (mm)', cells(r6, dict(case='stop'), 'ev_peak', 1e3, 0)),
         ('\\quad formation IAE (m$\\cdot$s)', cells(r6, dict(case='stop'), 'ev_iae', 1, 2)),
         ('\\quad tracking IAE (m$\\cdot$s)', cells(r6, dict(case='stop'), 'ev_track_iae', 1, 2)),
-        ('Random draws (R5): formation', ['1'] + [f"{r5[t]['form_med']:.2f}" + r5p(t, 'm_form_iae') for t in C[1:]]),
-        ('\\quad formation, 95th percentile', ['--'] + [f"{r5[t]['form_p95']:.2f}" for t in C[1:]]),
-        ('\\quad tracking', ['1'] + [f"{r5[t]['track_med']:.2f}" + r5p(t, 'm_track_iae') for t in C[1:]]),
+        ('Random draws (R5): formation', ['1' + r5p('uncoupled', 'm_form_iae')] + [f"{r5[t]['form_med']:.2f}" + r5p(t, 'm_form_iae') for t in C[1:]]),
+        ('\\quad formation, 95th percentile', ['1'] + [f"{r5[t]['form_p95']:.2f}" for t in C[1:]]),
+        ('\\quad tracking', ['1' + r5p('uncoupled', 'm_track_iae')] + [f"{r5[t]['track_med']:.2f}" + r5p(t, 'm_track_iae') for t in C[1:]]),
         ('Failed: all tuning gains (R0)', [f"{sum(bool(m['failed']) for m in unc0)}/{len(unc0)}"] +
          [f'{big(t)}/{nr0(t)}' for t in C[1:]]),
         ('\\quad $N=8$, 12, unit weights (R7)', [n7(d7, 'uncoupled', 'none'), '--', n7(d7, 'direct', 'complete'),
@@ -173,20 +175,21 @@ def tab_hifi():
     ]
     write('tab_hifi', [
         '\\begin{table}[t]',
-        '\\caption{Main results on the high-fidelity model: means over 30 (R2) and 20 (R6) seeds; R5: medians and 95th '
-        'percentile of the whole-run IAE relative to no coupling over the random draws without failure. $^\\dagger$: '
-        'paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, Holm-corrected)}\\label{tab:hifi}',
+        '\\caption{Main results on the high-fidelity model: means over 30 (R2) and 20 (R6) seeds on the warehouse route; '
+        'R5: medians and 95th percentile of the whole-run IAE relative to no coupling over the random draws without '
+        'failure; R7, R7b: complete graphs. $^\\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon '
+        'signed-rank test, for R5 on log ratios; Holm-corrected within each row)}\\label{tab:hifi}',
         '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{2.4pt}', '\\begin{tabular}{@{}lcccc@{}}', '\\toprule',
         ' & No coupl. & $\\sigma$-leak & Direct & Cascade\\\\', '\\midrule'] +
         [lab + ' & ' + ' & '.join(v) + '\\\\' for lab, v in rows] + ['\\bottomrule', '\\end{tabular}', '\\end{table}'])
-    # conference version: the same table without the experiment labels of the extended version
+    # Table I of the paper: the same table without the experiment labels
     import re
     strip = lambda t: re.sub(r' \(R[0-9]b?\)', '', t)
     write('tab_hifi_cdc', [
         '\\begin{table}[t]',
-        '\\caption{Main results on the high-fidelity model: means over 30 seeds (nominal) and 20 seeds (events); random '
-        'draws: medians and 95th percentile of the whole-run IAE relative to no coupling over the draws without failure. '
-        '$^\\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, Holm-corrected)}'
+        '\\caption{Main results on the high-fidelity model: means over 30 (nominal) and 20 seeds (events); random draws: '
+        'median and 95th percentile of the whole-run IAE relative to no coupling. $^\\dagger$: paired difference from '
+        'the cascade, $p<0.01$ (Wilcoxon, Holm-corrected; random draws: log ratios, without failures)}'
         '\\label{tab:hifi}',
         '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{2.4pt}', '\\begin{tabular}{@{}lcccc@{}}', '\\toprule',
         ' & No coupl. & $\\sigma$-leak & Direct & Cascade\\\\', '\\midrule'] +
@@ -264,7 +267,7 @@ def tab_slip():
         '\\end{tabular}', '\\end{table}'])
 
 
-# ---------------------------------------------------------------- robustness tables (Appendix B-B)
+# ---------------------------------------------------------------- robustness tables (study tables, not in the paper)
 WIDE = {'tab_r1', 'tab_r2_nominal', 'tab_r2_event', 'tab_r6', 'tab_r7b'}
 PAPER_TABLES = {'tab_r5', 'tab_r6', 'tab_r7b'}      # robustness tables that appear in the paper
 WORDS = [('localisation', 'localization'), ('Localisation', 'Localization'), ('relocalisation', 'relocalization'),

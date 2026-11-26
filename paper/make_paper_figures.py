@@ -1,11 +1,12 @@
-"""Figures of the paper (conference version and extended version, arXiv v2) from the stored results.
+"""Figures from the stored results. The paper (arXiv v2) uses fig_kin_cdc.pdf (Fig. 2) and fig_hifi.pdf (Fig. 3); the
+other figures document the study.
 
     python3 paper/make_paper_figures.py            # all figures  -> paper/figures/fig_*.pdf
     python3 paper/make_paper_figures.py kin hifi   # selected figures
 
 Needs only the files in results/ and results/robust/ (results and time series are part of the repository); nothing is
 simulated. The figure functions of experiments/make_figures.py and experiments/robust/make_figures_robust.py are reused
-in the style of the paper; Figs. 2 and 3 (and Fig. 2 of the conference version) and the figures of R4 and R7 are drawn
+in the style of the paper; Figs. 2 and 3 of the paper, fig_kin.pdf and the figures of R4 and R7 are drawn
 here. The figures of the study that the paper does not show are made by experiments/robust/make_figures_robust.py. Broadcast rates, fix
 rates and fix latencies are plotted at the values realized on the control grid (agvsim.hifi.realized_timing)."""
 import json
@@ -135,7 +136,7 @@ def load_e3(net, graph='complete'):
 
 
 def fig_kin():
-    """Fig. 2: (a) vehicle Lyapunov function, (b) tracking error (figure-8, seed 7), (c) steady disagreement ratio
+    """Study figure (not in the paper): (a) vehicle Lyapunov function, (b) tracking error (figure-8, seed 7), (c) steady disagreement ratio
     against the factor of Proposition 1 (persistent-error runs of E5)."""
     fig, axs = plt.subplots(1, 3, figsize=(7.0, 1.45), gridspec_kw=dict(wspace=0.36))
     a1, a2, a3 = axs
@@ -182,7 +183,7 @@ def fig_hifi():
     (c) formation IAE after the traction loss relative to no coupling against the mean latency (R3, medians);
     (d) gain selection on the tuning seeds (R0): whole-run IAE ratios, crosses mark gains with failed runs."""
     doc, ts, rs = mfr.rows('r6_events')
-    fig, axs = plt.subplots(1, 4, figsize=(7.0, 1.5), gridspec_kw=dict(wspace=0.42))
+    fig, axs = plt.subplots(1, 4, figsize=(7.0, 1.26), gridspec_kw=dict(wspace=0.42))
     for ax, case, span, xl in ((axs[0], 'traction', (30.0, 32.0), (27, 38)), (axs[1], 'stop', (30.0, 33.0), (27, 45))):
         ax.axvspan(*span, color='#efeee8', lw=0, zorder=0)
         for typ in ('uncoupled', 'direct', 'cascade'):
@@ -194,6 +195,7 @@ def fig_hifi():
             ax.plot(t[m], med, color=col, ls=ls, label=lab, lw=1.05)
         ax.set_xlim(*xl); ax.set_ylim(0, None)
         ax.set_xlabel('Time (s)'); ax.set_ylabel('Formation error (m)')
+    axs[1].set_ylim(0, 3.5); axs[1].set_yticks([0, 1, 2, 3])   # room for the legend above the peak of no coupling
     axs[1].legend(loc='upper right', handlelength=1.8, fontsize=6.3)
     S = json.load(open(os.path.join(RESR, 'summary.json')))
     r3 = S['r3']; base = r3['uncoupled']['ev_iae']
@@ -220,10 +222,10 @@ def fig_hifi():
                 a4.plot(r['track_ratio'], r['form_ratio'], marker=mk, ms=7, mfc='none', mec=col, mew=1.0)
             if r['failed']:
                 a4.plot(r['track_ratio'], r['form_ratio'], marker='x', ms=4.5, color=INK, mew=0.9, ls='none')
-                off = (-10, 1) if r['track_ratio'] < 1.3 else ((3, -7) if typ == 'direct' else (-9, 2))
+                off = (1, -9) if r['track_ratio'] < 1.3 else ((1, 5) if r['track_ratio'] < 3 else ((3, -7) if typ == 'direct' else (-9, 2)))
                 a4.annotate(f"{r['failed']}", (r['track_ratio'], r['form_ratio']), textcoords='offset points',
                             xytext=off, fontsize=6, color=INK)
-    a4.set_xscale('log'); a4.set_yscale('log'); a4.set_xlim(0.8, 80); a4.set_ylim(0.7, 15)
+    a4.set_xscale('log'); a4.set_yscale('log'); a4.set_xlim(0.8, 80); a4.set_ylim(0.6, 15)
     a4.set_xticks([1, 10]); a4.set_xticklabels(['1', '10']); a4.set_yticks([1, 10]); a4.set_yticklabels(['1', '10'])
     a4.minorticks_off()
     a4.set_xlabel('Tracking IAE ratio'); a4.set_ylabel('Formation IAE ratio')
@@ -236,9 +238,9 @@ def fig_hifi():
 
 
 def fig_kin_cdc():
-    """Fig. 2 of the conference version: (a) tracking error on three networks and without coupling (figure-8,
+    """Fig. 2 of the paper: (a) tracking error on three networks and without coupling (figure-8,
     seed 7), (b) steady disagreement ratio against the factor of Proposition 1."""
-    fig, (a2, a3) = plt.subplots(1, 2, figsize=(3.45, 1.55), gridspec_kw=dict(wspace=0.5))
+    fig, (a2, a3) = plt.subplots(1, 2, figsize=(3.45, 1.3), gridspec_kw=dict(wspace=0.5))
     for net, lab, col, ls in NETS:
         d = load_e3(net)
         a2.semilogy(d['t'], np.linalg.norm(d['e'], axis=2).max(1), color=col, ls=ls, label=lab.replace(' network', ''))

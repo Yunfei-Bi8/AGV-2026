@@ -61,8 +61,10 @@ of the verification (`tab_verif.tex`), the rates of Lemmas 2 and 3 (`tab_scale.t
 network sweeps, practical factors and team sizes (`fig_r3_network.pdf`, `fig_r4_simreal_steady.pdf`,
 `fig_r7_scaling.pdf`), and the tables of R5, R6 and R7b. All other figures and tables of the study are produced by
 `experiments/robust/make_figures_robust.py` (into `figures/robust/` and `tables/`) and `experiments/make_figures.py`.
-The numbers quoted in the paper are in `results/robust/summary.json`, `results/e3_summary.json` and the per-run results
-in `results/robust/*.json`.
+`python3 paper/paper_numbers.py` prints every number quoted in Section V of the paper with its source (about 5 s); the
+numbers come from `results/e2_lemma2.json`, `results/e3_runs.json`, `results/e5_formation.json`,
+`results/robust/summary.json` and the per-run results in `results/robust/*.json`. The figure PDFs are byte-identical on
+Linux with the pinned packages and the Liberation Serif font; the tables do not depend on fonts.
 
 ## Robustness study (R0–R9)
 
@@ -113,8 +115,8 @@ Every layer has an ideal setting; `profile='ideal'` gives the kinematic model.
 `fb` is realized as one broadcast every `round(fc/fb)` control periods, a fix rate as one fix every `round(fc/f_fix)`
 periods and a fix latency as `round(d_fix*fc)` periods (Python rounds halves to even). At the nominal `fc = 50 Hz`, the
 nominal 20 Hz broadcasts, 20 Hz fixes and 50 ms fix latency are therefore realized as **25 Hz, 25 Hz and 40 ms**; the
-paper reports the realized values. `agvsim.hifi.realized_timing` computes them, every run stores them in
-`meta['realized']`, and the simulator warns when a requested value is not realized exactly. In the control-rate sweep of
+paper reports the realized values. `agvsim.hifi.realized_timing` computes them, every run made with the published code stores them in
+`meta['realized']` (the stored results predate this key; their timing is the same), and the simulator warns when a requested value is not realized exactly. In the control-rate sweep of
 R4, the timing changes with the control rate (at 10 Hz: 10 Hz broadcasts and fixes without fix latency).
 
 ## Numerical verification of the analysis (E1–E6)
@@ -123,9 +125,9 @@ R4, the timing changes with the control rate (at 10 Hz: 10 Hz broadcasts and fix
 python3 experiments/e1_prop1_algebra.py   # Lemma 2 and the perturbed inequality at 2e7 random points            (~1.5 min)
 python3 experiments/e2_lemma2_network.py  # Lemma 3 on 1000 exactly integrated delayed networks, rate tightness   (~1 min)
 python3 experiments/e3_cascade_mc.py      # 280 closed-loop runs, every claim of Theorems 1-2 checked on every run (~16 min)
-python3 experiments/e4_iss.py             # perturbation sweep, literal check of Theorem 3, broadcast noise        (~2 min)
+python3 experiments/e4_iss.py             # perturbation sweep, Theorem 3 of v1 (not in v2), broadcast noise      (~2 min)
 python3 experiments/e5_formation.py       # Proposition 1: steady formation-error attenuation, traction-loss test   (~4 min)
-python3 experiments/e6_direct_lk.py       # Proposition 2: direct-coupling baseline, Lyapunov-Krasovskii functional (~3 min)
+python3 experiments/e6_direct_lk.py       # direct-coupling baseline, delay bound of v1 (not in v2)               (~3 min)
 python3 experiments/make_figures.py       # figures of the study (paper figures: paper/make_paper_figures.py)
 ```
 

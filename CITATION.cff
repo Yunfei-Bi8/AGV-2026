@@ -6,6 +6,8 @@ authors:
     given-names: Yunfei
 repository-code: "https://github.com/Yunfei-Bi8/Delay-tolerant-agv-formation"
 license: MIT
+version: "arxiv-v2"
+date-released: "2026-11-26"
 url: "https://bi-yunfei.github.io/agv-formation/"
 preferred-citation:
   type: article
