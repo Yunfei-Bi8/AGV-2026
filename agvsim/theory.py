@@ -1,9 +1,9 @@
 """Closed-form constants of the theory.
 
 Numbering of the paper (arXiv v2): Lemma 2 = strict Lyapunov function, Lemma 3 = Halanay-type estimate of the filter
-network, Theorem 2 = exponential estimates, Theorem 3 = input-to-state estimate, Proposition 2 = direct coupling.
-(In arXiv v1 these were Proposition 1, Lemma 2, Theorem 2, Theorem 3 and Proposition 3; the keys of the stored
-results keep the v1 names, e.g. 'lemma2_ratio' and 'ok_prop1'.)"""
+network, Theorem 2 = exponential estimates. The input-to-state estimate and the delay bound of the direct coupling are
+Theorem 3 and Proposition 3 of arXiv v1 (in v1, the first three were Proposition 1, Lemma 2 and Theorem 2; the keys of
+the stored results keep the v1 names, e.g. 'lemma2_ratio' and 'ok_prop1')."""
 import numpy as np
 
 SQ2 = np.sqrt(2.0)

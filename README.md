@@ -7,7 +7,8 @@ Simulation code and data for the paper
 
 [Paper (arXiv)](https://arxiv.org/abs/2611.32409) · [Project page](https://bi-yunfei.github.io/agv-formation/)
 
-The tag `arxiv-v2` marks the state of the repository that belongs to version 2 of the paper. The repository contains
+Version 2 of the paper (arXiv v2) is a 6-page conference paper; the tag `arxiv-v2` marks the code that generated its
+figures and table. The repository contains
 everything needed to reproduce its numerical results:
 
 - **Numerical verification (E1–E6):** an event-driven simulator of the kinematic model. It checks every theorem,
@@ -46,27 +47,22 @@ python3 paper/make_paper_figures.py     # all figures -> paper/figures/   (~15 s
 python3 paper/make_paper_tables.py      # all tables  -> paper/tables/    (~15 s)
 ```
 
-Both scripts only read `results/`; nothing is simulated. Numbers refer to the extended version (arXiv v2); the
-conference version uses `fig_kin_cdc.pdf`, `fig_hifi.pdf`, `tab_hifi_cdc.tex` and `tab_verif.tex`.
+Both scripts only read `results/`; nothing is simulated. The paper (arXiv v2) uses three of their outputs:
 
-| Figure / table | Output | Data (experiment, wall time to recompute) |
+| Paper | Output | Data (experiment, wall time to recompute) |
 | --- | --- | --- |
-| Fig. 2 (verification) | `fig_kin.pdf`, `fig_kin_cdc.pdf` | `results/e3_*.npz` (E3, 16 min), `results/e5_formation.json` (E5, 4 min) |
+| Fig. 2 (verification on the kinematic model) | `fig_kin_cdc.pdf` | `results/e3_*.npz` (E3, 16 min), `results/e5_formation.json` (E5, 4 min) |
 | Fig. 3 (high-fidelity model) | `fig_hifi.pdf` | `results/robust/r6_events*` (R6, 7 min), `summary.json` (R3, 12 min), `r0_tuning_summary.json` (R0, 6 min) |
-| Fig. 4 (perturbations) | `fig_iss.pdf` | `results/e4_iss.json` (E4, 2 min) |
-| Figs. 5, 6, 7 | `fig_r3_network.pdf`, `fig_r4_simreal_steady.pdf`, `fig_r7_scaling.pdf` | R3, R4 (19 min), R7 (6 min) |
-| Table I | `tab_verif.tex` | `results/e3_summary.json` (E3) |
-| Table II | `tab_hifi.tex`, `tab_hifi_cdc.tex` | R0, R2, R5, R6, R7, R7b |
-| Tables IV, V | `tab_scale.tex`, `tab_rates.tex` | `results/e1_prop1.json` (E1, 1.5 min), `results/e2_lemma2.json` (E2, 1 min) |
-| Tables VI, VII | `tab_meas.tex`, `tab_slip.tex` | E3, E5 |
-| Tables IX, X, XI | `tab_r5.tex`, `tab_r6.tex`, `tab_r7b.tex` | R5 (11 min), R6, R7b (2 min) |
+| Table I (main results on the high-fidelity model) | `tab_hifi_cdc.tex` | R0, R2, R5, R6, R7, R7b |
 
-Fig. 1 and Tables III and VIII (setup and parameters) are written by hand. The figures and tables of the study that
-the paper does not show (for example the gain table of R0, the comparison of R1, the trajectories and tables of R2, the
-event IAE of R4, the distributions of R5, the curves of R6 and the sensitivity of R8) are produced by
-`experiments/robust/make_figures_robust.py` into `figures/robust/` and `tables/`. Most numbers quoted in Appendix B-B
-are in `results/robust/summary.json`; the others (for example the largest errors of runs that did not fail, the link
-failures of R6 and the counts of R0b) are computed from the per-run results in `results/robust/*.json`.
+Fig. 1 is drawn in the paper. The other outputs of the two scripts document the study in more detail: the worst cases
+of the verification (`tab_verif.tex`), the rates of Lemmas 2 and 3 (`tab_scale.tex`, `tab_rates.tex`,
+`tab_meas.tex`), the traction loss on the kinematic model (`tab_slip.tex`), the perturbation sweep (`fig_iss.pdf`), the
+network sweeps, practical factors and team sizes (`fig_r3_network.pdf`, `fig_r4_simreal_steady.pdf`,
+`fig_r7_scaling.pdf`), and the tables of R5, R6 and R7b. All other figures and tables of the study are produced by
+`experiments/robust/make_figures_robust.py` (into `figures/robust/` and `tables/`) and `experiments/make_figures.py`.
+The numbers quoted in the paper are in `results/robust/summary.json`, `results/e3_summary.json` and the per-run results
+in `results/robust/*.json`.
 
 ## Robustness study (R0–R9)
 
@@ -149,16 +145,17 @@ bounded perturbations; the high-fidelity study models them explicitly.
 
 ## Numbering of the results
 
-The paper was renumbered between arXiv v1 and v2. The code and the keys of the stored results keep the v1 names.
+Version 1 of the paper (a technical report) and version 2 (the conference paper) number the results differently. The
+code and the keys of the stored results keep the v1 names.
 
 | arXiv v2 | arXiv v1 | Code / result keys |
 | --- | --- | --- |
 | Lemma 2 (strict Lyapunov function) | Proposition 1 | `e1_prop1_algebra.py`, `ok_prop1`, `Vdot_ratio_*`, `propc_*` |
 | Lemma 3 (delayed filter network) | Lemma 2 | `e2_lemma2_network.py`, `lemma2_ratio`, `rate_lemma2` |
 | Theorem 2 (exponential estimates) | Theorem 2 | `thm2_*` |
-| Theorem 3 (input-to-state estimate) | Theorem 3 | `e4_iss.py` |
 | Proposition 1 (formation attenuation) | Proposition 2 | `e5_formation.py` |
-| Proposition 2 (direct coupling) | Proposition 3 | `e6_direct_lk.py` |
+| -- (not in v2) | Theorem 3 (input-to-state estimate) | `e4_iss.py` |
+| -- (not in v2) | Proposition 3 (direct coupling, delay bound) | `e6_direct_lk.py` |
 
 The constants of Theorem 2 in v2 do not depend on the delay bound (`agvsim/theory.py`); E3 was rerun with them, and
 `thm2_*_t1` reports the ratios for t ≥ 1 s.
