@@ -1,5 +1,8 @@
-"""E3. Cascade closed loop on the kinematic model: every claim of Theorems 1-2, Proposition 1 and Lemma 2 is
-checked on every run (three references x three networks x 20 seeds, a directed chain, and very large initial errors)."""
+"""E3. Cascade closed loop on the kinematic model: every claim of Theorems 1-2 and Lemmas 1-3 (arXiv v2 numbering)
+is checked on every run (three references x three networks x 20 seeds, a directed chain, and very large initial
+errors). Networks: 'nominal' = 60 ms latency, 'slow1' = 1 s, 'slow3' = 3 s (called the 60 ms, 1 s and 3 s networks in
+the paper). Runs: 9 x 20 on the complete graph, 2 x 20 on the directed chain (figure-8), 20 without coupling
+(figure-8) and 2 x 20 with large initial errors = 280."""
 import json, time
 import numpy as np
 from multiprocessing import Pool
@@ -51,6 +54,9 @@ if __name__ == '__main__':
                          Vdot_ratio_min_run=g('Vdot_ratio_min_run', min), Vdot_ratio_min_apriori=g('Vdot_ratio_min_apriori', min),
                          propc_max_run=g('propc_ratio_max_run', max), propc_max_apriori=g('propc_ratio_max_apriori', max),
                          thm2_max=float(max(max(x['thm2_eps_ratio'], x['thm2_e_ratio'], x['thm2_head_ratio']) for x in rr)),
+                         thm2_t1_max=float(max(max(x['thm2_eps_ratio_t1'], x['thm2_e_ratio_t1'], x['thm2_head_ratio_t1']) for x in rr)),
+                         thm2_t1_eps=g('thm2_eps_ratio_t1', max), thm2_t1_e=g('thm2_e_ratio_t1', max),
+                         thm2_t1_head=g('thm2_head_ratio_t1', max), rate_eps=g('rate_eps', np.nanmedian),
                          e_end_max=g('e_end', max), head_end_max=g('head_end', max), form_end_max=g('form_end', max),
                          rate_W=g('rate_W', np.nanmedian), rate_M=g('rate_M', np.nanmedian), rate_e=g('rate_e', np.nanmedian),
                          rate_lemma2=g('rate_lemma2', np.median), eta1_apriori=g('eta1', np.median),

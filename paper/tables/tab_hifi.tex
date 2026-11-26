@@ -1,0 +1,29 @@
+\begin{table}[t]
+\caption{Main results on the high-fidelity model. R2: warehouse route, mean over 30 seeds; R6: warehouse route, event of AGV~2 at 30\,s, mean over 20 seeds, IAE over 15\,s from the onset; R5: whole-run IAE relative to no coupling, 150 random draws of all model parameters; failed: a tracking-error coordinate exceeded 3\,m (largest tuning gains $\Lambda=8$\,s$^{-1}$, $c=4$)}\label{tab:hifi}
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & No coupling & Direct & Cascade\\
+\midrule
+\multicolumn{4}{@{}l}{Nominal operation (R2)}\\
+\quad formation RMS (mm) & 28.2 & 28.5 & 27.7\\
+\multicolumn{4}{@{}l}{Traction loss (R6)}\\
+\quad peak formation error (mm) & 517 & 331 & 380\\
+\quad formation IAE (m$\cdot$s) & 1.24 & 0.91 & 0.98\\
+\quad tracking IAE (m$\cdot$s) & 0.52 & 0.60 & 0.93\\
+\multicolumn{4}{@{}l}{Safety stop (R6)}\\
+\quad peak formation error (mm) & 2287 & 1574 & 1341\\
+\quad formation IAE (m$\cdot$s) & 10.06 & 6.83 & 5.35\\
+\quad tracking IAE (m$\cdot$s) & 3.47 & 5.59 & 6.78\\
+\multicolumn{4}{@{}l}{Random draws, whole run (R5)}\\
+\quad formation IAE ratio, median & 1 & 0.88 & 0.89\\
+\quad formation IAE ratio, 95th pct. & -- & 2.33 & 1.24\\
+\quad tracking IAE ratio, median & 1 & 1.00 & 1.24\\
+\multicolumn{4}{@{}l}{Failed runs}\\
+\quad largest tuning gains (R0) & 0/20 & 19/20 & 0/20\\
+\quad $N=8$ and 12, complete graph (R7) & 0/12 & 12/12 & 0/12\\
+\quad random draws (R5) & 0/150 & 3/150 & 0/150\\
+\bottomrule
+\end{tabular}
+\end{table}

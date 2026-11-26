@@ -522,16 +522,26 @@ def walltime():
     SUMMARY['total_runs'] = runs; SUMMARY['total_wall_s'] = tot
 
 
+# time series each figure function needs besides results/robust/<experiment>.json
+NEEDS = {'r0': ['r0_tuning_summary.json'], 'r1': ['r1_paper_delays_ts.npz'],
+         'r2': ['r2_realistic_ts.npz', 'r2_trajectories.npz'], 'r3': ['r3_network_ts.npz'], 'r4': ['r4_simreal_ts.npz'],
+         'r5': ['r5_domain_rand_ts.npz'], 'r6': ['r6_events_ts.npz'], 'r7': ['r7_scaling_ts.npz'],
+         'r7b': ['r7b_normalised_ts.npz', 'r7_scaling_ts.npz'], 'r8': ['r8_sensitivity_ts.npz'], 'r9': ['r9_numerics_ts.npz']}
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r7b', 'r8', 'r9']
+    which = [w for w in sys.argv[1:] if w in NEEDS] or ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r7b', 'r8', 'r9']
     names = {'r0': 'r0_tuning', 'r1': 'r1_paper_delays', 'r2': 'r2_realistic', 'r3': 'r3_network', 'r4': 'r4_simreal',
              'r5': 'r5_domain_rand', 'r6': 'r6_events', 'r7': 'r7_scaling', 'r7b': 'r7b_normalised', 'r8': 'r8_sensitivity', 'r9': 'r9_numerics'}
     p = os.path.join(RES, 'summary.json')
     if os.path.exists(p):
         SUMMARY.update(json.load(open(p)))
     for w in which:
-        if os.path.exists(os.path.join(RES, names[w] + '.json')):
-            globals()[w]()
-            print('done', w)
+        missing = [f for f in [names[w] + '.json'] + NEEDS[w] if not os.path.exists(os.path.join(RES, f))]
+        if missing:                                  # never derive numbers from incomplete data: keep the stored summary
+            print('skip', w, '(missing ' + ', '.join(missing) + ')')
+            continue
+        globals()[w]()
+        print('done', w)
     walltime()
     json.dump(SUMMARY, open(p, 'w'), indent=1, default=float)

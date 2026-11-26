@@ -5,28 +5,23 @@ stored ones, bit for bit.
     python3 check_stored.py 5 r4 r6    # 5 jobs each of R4 and R6
 
 Every job in results/robust/<experiment>.json is a complete description of one run, so this needs neither the time
-series nor a full re-run of the study.  Exit status 1 if any metric differs."""
+series nor a full re-run of the study.  All metrics are compared, including the failure flag; exit status 1 if any
+differs.  Bit-identity holds on the platform recorded in the results (Linux x86-64, the pinned package versions);
+other platforms or library versions can differ in the last digits."""
 import json, os, sys
 from multiprocessing import Pool
 import numpy as np
-from common import RES
+from common import RES, metrics_identical
 from agvsim import runner
 
 EXP = ['r0_tuning', 'r0b_direct_divergence', 'r1_paper_delays', 'r2_realistic', 'r3_network', 'r4_simreal',
        'r5_domain_rand', 'r6_events', 'r7_scaling', 'r7b_normalised', 'r8_sensitivity', 'r9_numerics']
 
 
-def same(a, b):
-    if isinstance(a, float) and isinstance(b, float):
-        return a == b or (np.isnan(a) and np.isnan(b))
-    return True                                       # only floating-point metrics are compared
-
-
 def _rerun(arg):
     name, i, job, stored = arg
     m = runner.run_job(job)['metrics']
-    bad = [k for k in m if k in stored and not same(m[k], stored[k])]
-    return name, i, bad
+    return name, i, metrics_identical(m, stored)
 
 
 def main():

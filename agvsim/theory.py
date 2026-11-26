@@ -1,4 +1,9 @@
-"""Closed-form constants of the theory (Propositions, Lemmas and Theorems of the paper)."""
+"""Closed-form constants of the theory.
+
+Numbering of the paper (arXiv v2): Lemma 2 = strict Lyapunov function, Lemma 3 = Halanay-type estimate of the filter
+network, Theorem 2 = exponential estimates, Theorem 3 = input-to-state estimate, Proposition 2 = direct coupling.
+(In arXiv v1 these were Proposition 1, Lemma 2, Theorem 2, Theorem 3 and Proposition 3; the keys of the stored
+results keep the v1 names, e.g. 'lemma2_ratio' and 'ok_prop1'.)"""
 import numpy as np
 
 SQ2 = np.sqrt(2.0)
@@ -10,7 +15,7 @@ def sinc(x):
 
 
 def alpha_weight(psi, b, kbar):
-    """Weight alpha of the strict Lyapunov function (Proposition 1), for unit length scale."""
+    """Weight alpha of the strict Lyapunov function (Lemma 2), for unit length scale."""
     a1 = 2 * psi / (1 + np.sqrt(b / 2))
     br = (2 * psi * np.sqrt(kbar ** 2 + b) + SQ2 * b
           + (b / psi) * ((1 / 3 + 1 / (2 * SQ2)) * np.sqrt(b) + 0.5 + 1 / np.sqrt(b)))
@@ -38,7 +43,7 @@ def V_strict(mu, nu, vt, b, al, ell=1.0):
 
 
 def halanay_rate(lam, Lam, d, h, beta=0.0, chi0=1.0):
-    """Positive root of eta = chi0 [(1-beta) lam - Lam d (exp(eta h) - 1)]  (Lemma 2)."""
+    """Positive root of eta = chi0 [(1-beta) lam - Lam d (exp(eta h) - 1)]  (Lemma 3)."""
     f = lambda eta: chi0 * ((1 - beta) * lam - Lam * d * np.expm1(eta * h)) - eta
     lo, hi = 0.0, chi0 * (1 - beta) * lam
     if f(hi) >= 0:
@@ -74,16 +79,17 @@ def cascade_constants(par, bounds, d, E0, h):
     out['chi0'] = min(1.0, rho * vmin / out['gbar']) if out['gbar'] > 0 else 1.0
     out['eta2'] = halanay_rate(lam, Lam, d, h, beta=0.5, chi0=out['chi0'])
     out['eta_star'] = 0.5 * min(out['eta1'], out['eta2'], gam)
-    out['C2'] = 4 * Lam * d / lam * out['C1'] * np.exp(out['eta1'] * h)
-    out['C3'] = ((lam + Lam * d + Lam * d * np.exp(out['eta_star'] * h)) * out['C2']
-                 + 2 * Lam * d * out['C1'] * np.exp(out['eta1'] * h))
+    # Theorem 2 (arXiv v2): since eta2 > 0 implies exp(eta2 h) < 1 + lam/(2 Lam d) and 2 eta* <= eta2, the constants
+    # below do not depend on the delay bound h; only the rate eta* does.
+    out['C2'] = out['C1'] * (1 + 4 * Lam * d / lam)
+    out['C3'] = (1.25 * lam + 2 * Lam * d) * out['C2'] + (2 * Lam * d + 0.5 * lam) * out['C1']
     out['K'] = out['C1'] + out['C2'] + 2 * out['C3'] / gam
     out['Kp'] = np.sqrt(b) * out['C1'] + np.pi * out['C3'] / vmin
     return out
 
 
 def iss_constants(al, b, vhat_min, Wmax):
-    """Constants of Theorem 3 (local ISS)."""
+    """Constants of Theorem 3 (local input-to-state estimate), unit length scale."""
     c1, c2 = c12(al, b)
     a = al * b * vhat_min
     return dict(a=a, Delta_max=a / (1 + Wmax) * np.sqrt(c1 * Wmax / (2 * c2)),
@@ -96,5 +102,5 @@ def Delta_size(dv, dn, dw, b):
 
 
 def direct_hstar(k1, k2, k3, c, dmax, vmax):
-    """Delay bound of the direct-coupling design."""
+    """Delay bound h* of the direct coupling (Proposition 2)."""
     return 1.0 / (c * dmax * max(k1, k2 * vmax ** 2 / k3))

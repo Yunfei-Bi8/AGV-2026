@@ -1,0 +1,17 @@
+\begin{table*}[!t]\centering\footnotesize
+\caption{Nominal operation on the high-fidelity model (R2): RMS errors in mm for $t\ge15$\,s, mean [95\% bootstrap confidence interval] over 30 seeds; $p$ for the estimated formation error against the cascade, Holm-corrected over the three comparisons with the cascade in each scenario. Localization: RMS position error of each vehicle's pose estimate.}\label{tab:r2_nominal}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{@{}llccccc@{}}\toprule
+Scenario & Controller & formation & formation, as estimated & tracking & localization & $p$\\\midrule
+transport & Cascade & 27.8 [26.4, 29.3] & 29.9 [29.7, 30.2] & 17.3 [16.4, 18.1] & 19.8 [19.2, 20.4] & --\\
+ & Direct & 26.7 [25.2, 28.3] & 29.3 [29.0, 29.5] & 15.2 [14.4, 16.0] & 19.8 [19.2, 20.4] & $<$0.001\\
+ & $\sigma$-leak & 30.7 [29.4, 32.1] & 31.7 [31.4, 32.1] & 16.8 [16.1, 17.5] & 19.8 [19.2, 20.4] & $<$0.001\\
+ & No coupling & 28.8 [27.3, 30.4] & 32.8 [32.0, 33.5] & 15.7 [14.9, 16.5] & 19.8 [19.2, 20.4] & $<$0.001\\
+\addlinespace
+warehouse & Cascade & 27.7 [26.4, 29.1] & 29.2 [29.0, 29.4] & 16.0 [15.3, 16.6] & 19.8 [19.2, 20.4] & --\\
+ & Direct & 28.5 [27.2, 29.9] & 30.2 [30.0, 30.4] & 16.2 [15.4, 16.8] & 19.8 [19.2, 20.4] & $<$0.001\\
+ & $\sigma$-leak & 49.1 [30.0, 84.2] & 50.1 [31.4, 85.2] & 27.7 [15.7, 49.2] & 19.8 [19.2, 20.4] & $<$0.001\\
+ & No coupling & 28.2 [26.7, 29.7] & 31.1 [30.5, 31.8] & 15.6 [14.8, 16.3] & 19.8 [19.2, 20.4] & $<$0.001\\
+\bottomrule\end{tabular}
+\end{adjustbox}
+\end{table*}

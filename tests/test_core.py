@@ -40,14 +40,26 @@ class TestNetwork(unittest.TestCase):
             self.assertTrue(np.all(L['arr'] >= L['ks'] / 50.0 + 0.01 - 1e-12))  # never earlier than the minimum latency
 
     def test_common_random_numbers(self):
-        """The packet schedule does not depend on the controller."""
-        runs = []
-        for typ in ('cascade', 'direct'):
-            sim = hf.HifiSim('warehouse', hf.graph('complete', 3), ctrl=dict(type=typ), seed=11, T=5.0)
-            net = hf.Network(sim.A, 250, 50.0, sim.net, np.random.default_rng(np.random.SeedSequence(11).spawn(6)[1]))
-            runs.append([(L['arr'].copy(), L['ks'].copy()) for L in net.links])
-        for (a1, k1), (a2, k2) in zip(*runs):
-            np.testing.assert_array_equal(a1, a2); np.testing.assert_array_equal(k1, k2)
+        """All controllers draw the same random numbers: after a run, every stream (initial errors, network, sensors,
+        disturbances, clocks, vehicle parameters) is in the same state, whichever controller was used."""
+        states = []
+        for typ in ('uncoupled', 'cascade', 'sigleak', 'direct'):
+            out = hf.HifiSim('warehouse', hf.graph('complete', 3), ctrl=dict(type=typ), sim=dict(record_rng=True),
+                             seed=11, T=4.0).run()
+            self.assertFalse(out['failed'])
+            states.append(out['rng_state'])
+        for other in states[1:]:
+            self.assertEqual(states[0], other)
+        # a different seed changes the streams, so the comparison above is not vacuous
+        out = hf.HifiSim('warehouse', hf.graph('complete', 3), sim=dict(record_rng=True), seed=12, T=4.0).run()
+        self.assertNotEqual(states[0], out['rng_state'])
+
+    def test_timing_on_control_grid(self):
+        """Broadcast and fix timing is realized on the control grid (20 Hz -> 25 Hz, 50 ms -> 40 ms at 50 Hz)."""
+        r = hf.realized_timing(50.0, 20.0, 20.0, 0.05)
+        self.assertAlmostEqual(r['fb'], 25.0); self.assertAlmostEqual(r['f_fix'], 25.0); self.assertAlmostEqual(r['d_fix'], 0.04)
+        out = hf.HifiSim('warehouse', hf.graph('complete', 3), seed=1, T=2.0).run()
+        self.assertEqual(out['meta']['realized'], dict(fb=25.0, f_fix=25.0, d_fix=0.04))
 
 
 class TestSimulation(unittest.TestCase):

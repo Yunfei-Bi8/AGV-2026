@@ -48,6 +48,16 @@ def event_metrics(t, form, t0, t1, thr=0.10, horizon=15.0):
     return dict(peak=peak, iae=iae, recovery=rec)
 
 
+def metrics_identical(m, stored):
+    """Names of the metrics that differ between a re-run and the stored run (all keys, including the failure flag)."""
+    def eq(a, b):
+        if isinstance(a, float) and isinstance(b, float):
+            return a == b or (np.isnan(a) and np.isnan(b))
+        return a == b
+    keys = set(m) | set(stored)
+    return sorted(k for k in keys if k not in m or k not in stored or not eq(m[k], stored[k]))
+
+
 def ts_of(ts, i):
     return {k: ts[f'{i}/{k}'] for k in ('t', 'form', 'form_est', 'track', 'track_max', 'sync', 'tau', 'loc')
             if f'{i}/{k}' in ts}

@@ -1,19 +1,23 @@
 # Delay-Tolerant Formation Tracking for Multi-AGV Systems via Reference-Shift Coupling
 
-Simulation code for the paper
+Simulation code and data for the paper
 
 > Yunfei Bi. *Delay-Tolerant Formation Tracking for Multi-AGV Systems via Reference-Shift Coupling.*
 > arXiv:2611.32409, 2026.
 
 [Paper (arXiv)](https://arxiv.org/abs/2611.32409) · [Project page](https://bi-yunfei.github.io/agv-formation/)
 
-The repository contains everything needed to reproduce the numerical results of the paper:
+The tag `arxiv-v2` marks the state of the repository that belongs to version 2 of the paper. The repository contains
+everything needed to reproduce its numerical results:
 
 - **Numerical verification (E1–E6):** an event-driven simulator of the kinematic model. It checks every theorem,
   proposition and lemma of the stability analysis on the model for which it is stated.
-- **Robustness and sim-to-real study (R0–R9):** a high-fidelity AGV simulator and 4,894 runs that compare the cascade
-  (reference-shift) coupling with three baselines.
-- The stored per-run results, the figures and the LaTeX tables of the paper.
+- **Robustness study (R0–R9):** a high-fidelity AGV simulator and 4,894 runs that compare the cascade
+  (reference-shift) coupling with three baselines. The 480 runs of R1 use the simulator in its ideal setting, which is
+  the kinematic model.
+- **Stored data:** the per-run results of all experiments and their time series (`results/`, about 140 MB).
+- **Paper scripts:** `paper/make_paper_figures.py` and `paper/make_paper_tables.py` regenerate every figure and table
+  of the paper from the stored data.
 
 ## Setup
 
@@ -23,84 +27,137 @@ Python 3.10 with numpy, scipy and matplotlib. Pinned versions:
 pip install -r requirements.txt
 ```
 
-All commands below are run from the repository root unless stated otherwise.
+All commands below are run from the repository root unless stated otherwise. The experiments use 16 to 18 worker
+processes; the times below were measured on a laptop with an Intel i9-13900H (20 hardware threads).
 
 ## Quick check (about 2 minutes)
 
 ```
-python3 -m unittest discover -s tests              # simulator unit tests                                  (~35 s)
-python3 experiments/smoke.py figure8 nominal       # one verification run, all checks printed              (~15 s)
+python3 -m unittest discover -s tests              # simulator unit tests                                   (~40 s)
+python3 experiments/smoke.py figure8 nominal       # one verification run, all checks printed               (~15 s)
 python3 experiments/robust/check_stored.py         # re-runs 2 stored jobs of each experiment and compares
-                                                   # their metrics with results/robust/ bit for bit         (~1 min)
+                                                   # all their metrics with results/robust/ bit for bit      (~1 min)
 ```
 
-## Robustness and sim-to-real study (R0–R9)
+## Figures and tables of the paper
 
 ```
-python3 run_all.py            # unit tests, R0-R9, figures and tables;  --force recomputes;  r3 r6 ... selects
+python3 paper/make_paper_figures.py     # all figures -> paper/figures/   (~15 s)
+python3 paper/make_paper_tables.py      # all tables  -> paper/tables/    (~15 s)
 ```
 
-This takes about 1.5 hours on a 20-thread laptop CPU (Intel i9-13900H) with 18 worker processes. R0 runs first,
-because the coupling gains it selects are used by all other experiments. Figures go to `figures/robust/` and tables
-to `tables/`.
+Both scripts only read `results/`; nothing is simulated. Numbers refer to the extended version (arXiv v2).
 
-| Experiment | Question | Runs |
+| Figure / table | Output | Data (script that produces it, wall time) |
 | --- | --- | --- |
-| `r0_tuning` | Coupling gain of each controller, chosen on tuning seeds 1000–1009 only | 380 |
-| `r0b_direct_divergence` | Why the direct coupling diverges: limits removed, ideal profile, 200 Hz control | 160 |
-| `r1_paper_delays` | Comparison under the heterogeneous sinusoidal delays of Peng–Ngo–Liu (2023), model of the theorems | 480 |
-| `r2_realistic` | With vs. without synchronisation on the high-fidelity AGV model (nominal and traction loss) | 480 (+8 trajectory recordings) |
-| `r3_network` | Latency, loss, outages (with/without watchdog), broadcast rate, scaled sinusoidal delays | 650 |
-| `r4_simreal` | Sim-to-real factors one at a time (localisation, calibration, slip, payload, delays, rates, clocks, limits) | 1152 |
-| `r5_domain_rand` | Domain-randomised Monte Carlo over all factors | 600 |
-| `r6_events` | Traction loss, safety stop, relocalisation jump, switching links, permanent link failure | 460 |
-| `r7_scaling` | 3–12 vehicles, five graphs, unit weights | 264 |
-| `r7b_normalised` | Complete graphs with degree-normalised weights | 48 |
-| `r8_sensitivity` | Cascade parameters λ, γ, ρ, ē | 170 |
-| `r9_numerics` | Plant step-size convergence (+12 bit-identical re-runs of stored R2 jobs) | 50 |
-| **Total** | stored jobs | **4,894** |
+| Fig. 2 (verification) | `fig_kin.pdf` | `results/e3_*.npz` (E3, 16 min), `results/e5_formation.json` (E5, 4 min) |
+| Fig. 3 (high-fidelity model) | `fig_hifi.pdf` | `results/robust/r6_events*` (R6, 7 min), `results/robust/summary.json` (R3, 12 min) |
+| Fig. 4 (paths) | `fig_traj.pdf` | `results/e3_*_nominal_complete.npz` (E3) |
+| Fig. 5 (perturbations) | `fig_iss.pdf` | `results/e4_iss.json` (E4, 2 min) |
+| Figs. 6–16 (R0–R8) | `fig_r0_tuning.pdf` … `fig_r8_sensitivity.pdf` | `results/robust/<experiment>.json` and `<experiment>_ts.npz` (R0–R8) |
+| Table I | `tab_verif.tex` | `results/e3_summary.json` (E3) |
+| Table II | `tab_hifi.tex` | R0, R2, R5, R6, R7 |
+| Tables IV, V | `tab_scale.tex`, `tab_rates.tex` | `results/e1_prop1.json` (E1, 1.5 min), `results/e2_lemma2.json` (E2, 1 min) |
+| Tables VI, VII | `tab_meas.tex`, `tab_slip.tex` | E3, E5 |
+| Tables X–XVI | `tab_r0.tex` … `tab_r7b.tex` | R0, R1, R2, R5, R6, R7, R7b |
+
+Tables III, VIII and IX describe the setup and are written by hand. The numbers quoted in the text of Appendix B-B
+are in `results/robust/summary.json`.
+
+## Robustness study (R0–R9)
+
+```
+python3 run_all.py            # unit tests, figures and tables;  --force re-runs R0-R9;  r3 r6 ... selects
+```
+
+An experiment is skipped when its results and time series are stored, so a plain call only regenerates the figures and
+tables. `python3 run_all.py --force` re-runs all experiments (about 1.5 hours). R0 runs first, because the coupling
+gains it selects are used by all other experiments. The figures and tables of the study go to `figures/robust/` and
+`tables/`, and those of the paper to `paper/`.
+
+| Experiment | Question | Runs | Wall time |
+| --- | --- | --- | --- |
+| `r0_tuning` | Coupling gain of each controller, chosen on tuning seeds 1000–1009 only | 380 | 6 min |
+| `r0b_direct_divergence` | Why the direct coupling diverges: limits removed, ideal profile, 200 Hz control | 160 | 3 min |
+| `r1_paper_delays` | Comparison under the heterogeneous sinusoidal delays of Peng–Ngo–Liu (2023), kinematic model | 480 | 8 min |
+| `r2_realistic` | With vs. without coupling on the high-fidelity AGV model (nominal and traction loss) | 480 (+8 trajectory recordings) | 8 min |
+| `r3_network` | Latency, loss, outages (with/without watchdog), broadcast rate, scaled sinusoidal delays | 650 | 12 min |
+| `r4_simreal` | Practical factors one at a time (localization, calibration, slip, payload, delays, rates, clocks, limits) | 1152 | 19 min |
+| `r5_domain_rand` | Domain-randomized Monte Carlo over all factors | 600 | 11 min |
+| `r6_events` | Traction loss, safety stop, relocalization jump, switching links, permanent link failure | 460 | 7 min |
+| `r7_scaling` | 3–12 vehicles, five graphs, unit weights | 264 | 6 min |
+| `r7b_normalised` | Complete graphs with degree-normalized weights | 48 | 2 min |
+| `r8_sensitivity` | Cascade parameters λ, γ, ρ, ē | 170 | 3 min |
+| `r9_numerics` | Plant step-size convergence (+12 bit-identical reruns of stored R2 jobs) | 50 | 2 min |
+| **Total** | stored jobs | **4,894** | **87 min** |
 
 The four controllers are `uncoupled` (no coupling), `cascade` (the proposed design), `sigleak` (σ-leak filter) and
-`direct` (direct coupling of the delayed neighbour errors).
+`direct` (direct coupling of the delayed neighbor errors).
 
 ### High-fidelity simulator (`agvsim/hifi.py`)
 
 Each run passes through the following layers:
 
-- **Controller:** runs at 50 Hz on local clocks (offset, drift), using pose estimates.
+- **Controller:** runs at 50 Hz, sampled on the common time grid; the reference time of each vehicle follows its
+  local clock (offset, drift). It uses pose estimates.
 - **Drives:** nominal geometry, speed and ramp limits, PI wheel loops with torque saturation, actuation delay.
 - **Vehicle:** differential-drive rigid-body dynamics with payload, calibration errors, resistance and slip
   (Ornstein–Uhlenbeck).
-- **Localisation:** LiDAR fixes (rate, latency, noise, bias, outliers) fused with odometry.
+- **Localization:** LiDAR-type fixes (rate, latency, noise, bias, outliers) fused with odometry.
 - **Network:** latency models (including the sinusoidal delays of the reference paper), Gilbert–Elliott loss, outages,
   link switching, newest-sample hold.
 
-Every layer has an ideal setting; `profile='ideal'` gives the model of the theorems.
+Every layer has an ideal setting; `profile='ideal'` gives the kinematic model.
+
+**Timing on the control grid.** Broadcasts and localization fixes are scheduled on the control grid: a broadcast rate
+`fb` is realized as one broadcast every `round(fc/fb)` control periods, a fix rate as one fix every `round(fc/f_fix)`
+periods and a fix latency as `round(d_fix*fc)` periods (Python rounds halves to even). At the nominal `fc = 50 Hz`, the
+nominal 20 Hz broadcasts, 20 Hz fixes and 50 ms fix latency are therefore realized as **25 Hz, 25 Hz and 40 ms**; the
+paper reports the realized values. `agvsim.hifi.realized_timing` computes them, every run stores them in
+`meta['realized']`, and the simulator warns when a requested value is not realized exactly. In the control-rate sweep of
+R4, the timing changes with the control rate (at 10 Hz: 10 Hz broadcasts and fixes without fix latency).
 
 ## Numerical verification of the analysis (E1–E6)
 
 ```
-python3 experiments/e1_prop1_algebra.py   # Proposition 1 and the perturbed inequality at 2e7 random points       (~1.5 min)
-python3 experiments/e2_lemma2_network.py  # Lemma 2 on 1000 exactly integrated delayed networks, rate tightness     (~1 min)
-python3 experiments/e3_cascade_mc.py      # 280 closed-loop runs, every claim of Theorems 1-2 checked on every run  (~16 min)
-python3 experiments/e4_iss.py             # perturbation sweep, literal check of Theorem 3, broadcast noise         (~2 min)
-python3 experiments/e5_formation.py       # Proposition 2: steady formation-error attenuation, traction-loss test   (~4 min)
-python3 experiments/e6_direct_lk.py       # Proposition 3: direct-coupling baseline, Lyapunov-Krasovskii functional (~3 min)
-python3 experiments/make_figures.py       # figures of the paper (needs the time series written by E3 and E5)
+python3 experiments/e1_prop1_algebra.py   # Lemma 2 and the perturbed inequality at 2e7 random points            (~1.5 min)
+python3 experiments/e2_lemma2_network.py  # Lemma 3 on 1000 exactly integrated delayed networks, rate tightness   (~1 min)
+python3 experiments/e3_cascade_mc.py      # 280 closed-loop runs, every claim of Theorems 1-2 checked on every run (~16 min)
+python3 experiments/e4_iss.py             # perturbation sweep, literal check of Theorem 3, broadcast noise        (~2 min)
+python3 experiments/e5_formation.py       # Proposition 1: steady formation-error attenuation, traction-loss test   (~4 min)
+python3 experiments/e6_direct_lk.py       # Proposition 2: direct-coupling baseline, Lyapunov-Krasovskii functional (~3 min)
+python3 experiments/make_figures.py       # figures of the study (paper figures: paper/make_paper_figures.py)
 ```
 
-The scripts use 16 to 18 processes. Results go to `results/`, figures to `figures/`.
+The script names keep the numbering of arXiv v1 (see below). Results go to `results/`, figures to `figures/`.
 
 How the numerical error is kept below the reported margins:
 
 - Received samples are piecewise constant, so no delayed state is interpolated; discontinuities lie on step boundaries.
 - Tolerances are 1e-10 (relative) and 1e-12 (absolute); the local error estimates sum to less than 3e-8 per run.
-- `W_i(t) + D_i(t) = W_i(0)` is checked on every run (residual at most 2e-11 m²).
-- The Lemma-2 tests use the closed-form solution between events and have no discretisation error.
+- `W_i(t) + Q_i(t) = W_i(0)` (energy balance with the integrated dissipation) is checked on every run (residual at
+  most 2e-11 m²).
+- The tests of Lemma 3 use the closed-form solution between events and have no discretization error.
 - Every run is a deterministic function of its seed.
 
-Not covered here: sampled control, actuator lag, wheel limits and localisation noise. In E4 and E5 they enter only as
-bounded perturbations; the high-fidelity study above models them explicitly.
+Not covered here: sampled control, actuator lag, wheel limits and localization noise. In E4 and E5 they enter only as
+bounded perturbations; the high-fidelity study models them explicitly.
+
+## Numbering of the results
+
+The paper was renumbered between arXiv v1 and v2. The code and the keys of the stored results keep the v1 names.
+
+| arXiv v2 | arXiv v1 | Code / result keys |
+| --- | --- | --- |
+| Lemma 2 (strict Lyapunov function) | Proposition 1 | `e1_prop1_algebra.py`, `ok_prop1`, `Vdot_ratio_*`, `propc_*` |
+| Lemma 3 (delayed filter network) | Lemma 2 | `e2_lemma2_network.py`, `lemma2_ratio`, `rate_lemma2` |
+| Theorem 2 (exponential estimates) | Theorem 2 | `thm2_*` |
+| Theorem 3 (input-to-state estimate) | Theorem 3 | `e4_iss.py` |
+| Proposition 1 (formation attenuation) | Proposition 2 | `e5_formation.py` |
+| Proposition 2 (direct coupling) | Proposition 3 | `e6_direct_lk.py` |
+
+The constants of Theorem 2 in v2 do not depend on the delay bound (`agvsim/theory.py`); E3 was rerun with them, and
+`thm2_*_t1` reports the ratios for t ≥ 1 s.
 
 ## Repository layout
 
@@ -110,16 +167,17 @@ bounded perturbations; the high-fidelity study above models them explicitly.
 | `agvsim/network.py` | Packet schedule per directed link: periodic broadcast, latency with jitter and spikes, Gilbert–Elliott loss, newest-sample hold |
 | `agvsim/integrator.py` | Dormand–Prince 5(4) with step-size control, integrating from event to event |
 | `agvsim/cascade.py` | Closed loop of the cascade design on the kinematic model; heading error as a state; dissipation integrated for the energy balance |
-| `agvsim/theory.py` | All constants of the paper: α, c1, c2, Lemma-2 rate, constants of Theorems 2 and 3, delay bound of the direct design |
+| `agvsim/theory.py` | All constants of the paper: α, c1, c2, rate of Lemma 3, constants of Theorems 2 and 3, delay bound of the direct design |
 | `agvsim/verify.py` | Evaluates every claim on a run and returns its margin |
-| `agvsim/hifi.py` | High-fidelity AGV simulator (drives, dynamics, localisation, network, clocks, events) |
+| `agvsim/hifi.py` | High-fidelity AGV simulator (drives, dynamics, localization, network, clocks, events) |
 | `agvsim/runner.py` | Deterministic parallel job runner; stores jobs, metrics and the software environment |
 | `agvsim/stats.py` | Bootstrap confidence intervals, paired tests, Holm correction |
 | `experiments/` | E1–E6 and their figures |
-| `experiments/robust/` | R0–R9, `make_figures_robust.py` (figures and tables), `check_stored.py` |
+| `experiments/robust/` | R0–R9, `make_figures_robust.py` (figures and tables of the study), `check_stored.py` |
+| `paper/` | Scripts for the figures and tables of the paper, and their output |
 | `tests/` | Unit tests |
-| `results/` | Stored results: E1–E6 summaries, and for R0–R9 the job list, metrics and environment of every run |
-| `figures/`, `tables/` | Figures and LaTeX tables of the paper |
+| `results/` | Stored results and time series of E1–E6 and R0–R9 |
+| `figures/`, `tables/` | Figures and tables of the study |
 
 ## Reproducibility
 
@@ -127,21 +185,22 @@ bounded perturbations; the high-fidelity study above models them explicitly.
   `results/robust/<experiment>.json` stores the job list, the metrics, the software environment and a hash of the
   simulator source.
 - **Common random numbers.** Each seed gets one `SeedSequence`, spawned into independent streams (initial errors,
-  network, sensors, disturbances, clocks, vehicle parameters). The number of draws never depends on the controller or
-  on parameter values. All controllers and all sweep levels therefore see the same realisation, which makes the
-  comparisons paired.
-- **Unit tests.** `tests/test_core.py` covers reference derivatives, the packet scheduler, common random numbers,
-  determinism, and agreement with the independent event-driven simulator (0.34 mm).
-- **Numerical checks.** `r9_numerics` varies the plant step size (0.5–10 ms) and re-runs stored jobs bit for bit.
-- **Figures and tables.** `experiments/robust/make_figures_robust.py` produces them from the stored results and time
-  series only.
-
-The time series of the robustness study (`results/robust/*_ts.npz`, about 110 MB) are not part of the repository;
-`run_all.py` regenerates them.
-
-The stored results were computed with earlier revisions of `agvsim/`, so the `code_hash` recorded in them differs from
-that of this code. `check_stored.py` re-runs stored jobs with this code and confirms that their metrics are reproduced
-bit for bit.
+  network, sensors, disturbances, clocks, vehicle parameters). The number of draws does not depend on the controller,
+  so all controllers see the same realization, and the comparisons between controllers are paired. The same holds
+  across sweeps of latency, loss and noise magnitudes. Changing a rate (control, broadcast or fix) or the graph changes
+  the number of draws and hence the realization.
+- **Unit tests.** `tests/test_core.py` covers reference derivatives, the packet scheduler, common random numbers (all
+  random streams end in the same state for all four controllers), the timing on the control grid, determinism, and
+  the agreement with the independent event-driven simulator (0.34 mm).
+- **Numerical checks.** `r9_numerics` varies the plant step size (0.5–10 ms) and reruns stored jobs bit for bit.
+  `check_stored.py` and `r9_numerics` compare all metrics, including the failure flag.
+- **Platform.** Bit-for-bit agreement is checked on Linux x86-64 with the pinned package versions
+  (`results/robust/*.json` record the environment). Other platforms or library versions can differ in the last digits.
+- **Provenance.** The stored results were computed with an earlier, unpublished revision of `agvsim/` (commit and
+  `code_hash` recorded in the results). Rerunning stored jobs with the published code reproduces their metrics bit for
+  bit (`check_stored.py`, R9); the changes since then concern documentation, metadata and checks, not the numerics.
+- **Figures and tables.** `experiments/robust/make_figures_robust.py` and the scripts in `paper/` use the stored
+  results and time series only. An experiment whose data are missing is skipped, and the stored summary is kept.
 
 ## Citation
 

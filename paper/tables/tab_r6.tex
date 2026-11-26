@@ -1,0 +1,27 @@
+\begin{table*}[!t]\centering\footnotesize
+\caption{Events of AGV~2 at 30\,s on the high-fidelity model (R6, warehouse route, 20 seeds, mean [95\% bootstrap confidence interval]). Recovery: mean over the runs that recover before the end of the run; the $\sigma$-leak filter does not recover in 5 of 20 runs after the traction loss and in 12 of 20 runs with switching links. No coupling uses no network, so that its row for switching links repeats the traction loss.}\label{tab:r6}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{@{}llcccc@{}}\toprule
+Event & Controller & peak formation (mm) & formation IAE (mm$\cdot$s) & tracking IAE (mm$\cdot$s) & recovery (s)\\\midrule
+traction loss & Cascade & 380 [375, 384] & 978 [943, 1015] & 932 [909, 956] & 0.69 [0.68, 0.71]\\
+ & Direct & 331 [326, 337] & 912 [879, 946] & 595 [577, 614] & 0.57 [0.54, 0.59]\\
+ & $\sigma$-leak & 649 [592, 698] & 3905 [3434, 4314] & 2462 [2163, 2729] & 14.71 [11.24, 18.27]\\
+ & No coupling & 517 [513, 521] & 1239 [1208, 1271] & 519 [500, 536] & 1.14 [1.10, 1.18]\\
+\addlinespace
+safety stop & Cascade & 1341 [1335, 1348] & 5346 [5284, 5406] & 6779 [6712, 6841] & 4.21 [4.17, 4.25]\\
+ & Direct & 1574 [1567, 1582] & 6829 [6764, 6893] & 5586 [5543, 5628] & 4.78 [4.75, 4.81]\\
+ & $\sigma$-leak & 1407 [1401, 1415] & 9155 [9046, 9262] & 9908 [9798, 10016] & 10.99 [10.88, 11.09]\\
+ & No coupling & 2287 [2280, 2294] & 10057 [9982, 10127] & 3465 [3437, 3492] & 5.23 [5.19, 5.27]\\
+\addlinespace
+relocalization & Cascade & 101 [95, 107] & 662 [600, 727] & 332 [305, 360] & 0.62 [0.28, 0.98]\\
+ & Direct & 126 [120, 132] & 696 [639, 755] & 345 [320, 372] & 1.17 [0.99, 1.32]\\
+ & $\sigma$-leak & 141 [134, 149] & 718 [657, 781] & 340 [317, 364] & 1.45 [1.14, 1.77]\\
+ & No coupling & 95 [90, 100] & 680 [618, 746] & 329 [302, 356] & 0.69 [0.23, 1.19]\\
+\addlinespace
+switching links & Cascade & 416 [399, 434] & 1080 [1037, 1125] & 883 [820, 950] & 0.87 [0.74, 1.06]\\
+ & Direct & 367 [353, 382] & 990 [952, 1029] & 586 [559, 618] & 0.86 [0.70, 1.05]\\
+ & $\sigma$-leak & 958 [811, 1144] & 5804 [4689, 7235] & 3139 [2515, 3942] & 13.10 [8.70, 17.90]\\
+ & No coupling & 517 [513, 521] & 1239 [1208, 1271] & 519 [500, 536] & 1.14 [1.10, 1.18]\\
+\bottomrule\end{tabular}
+\end{adjustbox}
+\end{table*}

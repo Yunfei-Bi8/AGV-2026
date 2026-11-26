@@ -2,8 +2,9 @@
 
 Layers (each one can be switched to its ideal version):
 
-* Controller  : runs at f_c on each vehicle's local clock (offset + drift), uses its own pose ESTIMATE and the newest
-                received neighbour sample; commands reach the drives after an actuation delay.
+* Controller  : runs at f_c on the common time grid and evaluates its reference at the vehicle's local time (clock
+                offset + drift); uses its own pose ESTIMATE and the newest received neighbour sample; commands reach
+                the drives after an actuation delay.
 * Drives      : (v, omega) -> wheel set-points with the NOMINAL geometry, curvature-preserving speed limit, set-point
                 ramp limit, PI wheel-speed loops with torque saturation and anti-windup.
 * Vehicle     : rigid-body dynamics of a differential-drive AGV in wheel coordinates (mass, yaw inertia, wheel
@@ -17,13 +18,33 @@ Layers (each one can be switched to its ideal version):
                 The schedule does not depend on the transmitted values, so all controllers see the same realisation.
 
 Random numbers: one SeedSequence per seed, spawned into independent streams (initial errors, network, sensors,
-disturbances, clocks); the number of draws never depends on the controller or on parameter values, so paired
-comparisons use common random numbers.
+disturbances, clocks, vehicle parameters). The number of draws does not depend on the controller, so all controllers
+see the same realization (paired comparisons with common random numbers). The same holds across sweeps of latency,
+loss and noise magnitudes; changing a rate (control, broadcast or fix rate) or the graph changes the number of draws
+and hence the realization.
+
+Timing: broadcasts and localization fixes are scheduled on the control grid. A broadcast rate fb is realized as one
+broadcast every round(fc/fb) control periods, a fix rate f_fix as one fix every round(fc/f_fix) periods, and a fix
+latency d_fix as round(d_fix*fc) periods (Python rounds halves to even). With the default fc = 50 Hz, fb = 20 Hz,
+f_fix = 20 Hz and d_fix = 0.05 s, the realized values are 25 Hz, 25 Hz and 40 ms. `realized_timing` returns them, and
+every run stores them in meta['realized'].
 """
 import copy
+import warnings
 import numpy as np
 from scipy.interpolate import CubicSpline
 from .theory import sinc
+
+
+def realized_timing(fc, fb, f_fix=None, d_fix=None):
+    """Broadcast rate, fix rate and fix latency that the control grid at fc actually realizes (see module docstring)."""
+    nb = max(1, int(round(fc / fb)))
+    out = dict(fb=fc / nb)
+    if f_fix is not None:
+        out['f_fix'] = fc / max(1, int(round(fc / f_fix)))
+    if d_fix is not None:
+        out['d_fix'] = int(round(d_fix * fc)) / fc
+    return out
 from .references import vehicle_refs, vehicle_refs_rot, make_scenario
 
 G = 9.81
@@ -336,6 +357,14 @@ class HifiSim:
         # localisation
         n_fix = max(1, int(round(fc / S['f_fix']))) if S['mode'] != 'ideal' else 1
         n_dfix = int(round(S['d_fix'] * fc)) if S['mode'] != 'ideal' else 0
+        realized = dict(fb=fc / net.nb)
+        if S['mode'] != 'ideal':
+            realized.update(f_fix=fc / n_fix, d_fix=n_dfix / fc)
+        req = dict(fb=Nc['fb'], f_fix=S['f_fix'], d_fix=S['d_fix'])
+        off_grid = [k for k in realized if abs(realized[k] - req[k]) > 1e-9 * max(1.0, abs(req[k]))]
+        if off_grid:
+            warnings.warn('timing quantized to the control grid (fc = %g Hz): ' % fc
+                          + ', '.join('%s %g -> %g' % (k, req[k], realized[k]) for k in off_grid), stacklevel=2)
         fixes = {}                                               # k_fix -> (N,3) measured pose
         bias = np.zeros((N, 3))
         last_fix_k = None
@@ -538,7 +567,9 @@ class HifiSim:
         out = {q: np.array(v) for q, v in R.items() if len(v)}
         out['failed'] = failed
         out['meta'] = dict(net=net.stats, torque_sat_frac=tsat / max(nplant, 1), wheel_sat_frac=wsat / max(K, 1),
-                           N=N, T=T, fc=fc, dt=dt, seed=self.seed)
+                           N=N, T=T, fc=fc, dt=dt, seed=self.seed, realized=realized)
+        if Sm.get('record_rng'):                       # final states of all random streams (unit test of common random numbers)
+            out['rng_state'] = [g.bit_generator.state for g in (r_init, r_net, r_sens, r_dist, r_clk, r_cal)]
         out['metrics'] = metrics(out, self.sim, self.T)
         return out
 

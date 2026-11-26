@@ -41,7 +41,7 @@ def verify_run(run, par, bounds, d, A=None):
     r['zeta_ratio'] = float(nz.max() / C['zeta_bound']) if C['zeta_bound'] > 0 else 0.0
     r['e_ratio'] = float(nerr.max() / C['e_bound'])
     r['ok_item3'] = bool(max(r['eps_ratio'], r['zeta_ratio'], r['e_ratio']) <= 1 + tiny)
-    # Lemma 2 with t0 = 0, beta -> 1:  M(t) <= sup_{s<=t} P(s) / lam
+    # Lemma 3 with t0 = 0, beta -> 1:  M(t) <= sup_{s<=t} P(s) / lam
     M, Pm = nz.max(1), np.maximum.accumulate(run['pi'].max(1))
     r['lemma2_ratio'] = float(np.max(M / np.maximum(Pm / lam, 1e-300)))
     r['ok_lemma2'] = bool(r['lemma2_ratio'] <= 1 + tiny)
@@ -49,7 +49,7 @@ def verify_run(run, par, bounds, d, A=None):
     form = formation_error(run['e'])
     r['e_end'], r['head_end'], r['form_end'] = float(nerr[-1].max()), float(np.abs(run['head'][-1]).max()), float(form[-1])
     r['e_start'], r['form_start'] = float(nerr[0].max()), float(form[0])
-    # Proposition 1 along the run: with the a-priori curvature bound and with the curvature that occurred
+    # Lemma 2 (strict Lyapunov function) along the run: with the a-priori curvature bound and with the curvature that occurred
     kap_run = float((np.abs(run['wh']) / run['vh']).max())
     r['curv_run'], r['curv_apriori'] = kap_run, float(C['kbar'])
     s = np.concatenate([np.zeros((1, W.shape[1])),
@@ -70,7 +70,7 @@ def verify_run(run, par, bounds, d, A=None):
     r['ok_prop1'] = bool(r['Vdot_ratio_min_apriori'] >= 1 and r['Vdot_ratio_min_run'] >= 1
                          and r['propc_ratio_max_apriori'] <= 1 and r['propc_ratio_max_run'] <= 1
                          and r['sandwich_ok_apriori'] and r['sandwich_ok_run'])
-    # Theorem 2: explicit exponential estimates
+    # Theorem 2: explicit exponential estimates (constants of theory.cascade_constants)
     b1 = C['C1'] * E0 * np.exp(-C['eta1'] * t)
     b2 = C['K'] * E0 * np.exp(-C['eta_star'] * t)
     b3 = C['Kp'] * E0 * np.exp(-C['eta_star'] * t)
@@ -78,10 +78,17 @@ def verify_run(run, par, bounds, d, A=None):
     r['thm2_e_ratio'] = float((nerr.max(1) / b2).max())
     r['thm2_head_ratio'] = float((np.abs(run['head']).max(1) / b3).max())
     r['ok_thm2'] = bool(max(r['thm2_eps_ratio'], r['thm2_e_ratio'], r['thm2_head_ratio']) <= 1 + tiny)
+    # the largest ratio is attained at t = 0 (it equals 1/C1 there); the ratios after 1 s show the conservatism
+    m1 = t >= 1.0
+    r['thm2_eps_ratio_t1'] = float((ne.max(1)[m1] / b1[m1]).max())
+    r['thm2_e_ratio_t1'] = float((nerr.max(1)[m1] / b2[m1]).max())
+    r['thm2_head_ratio_t1'] = float((np.abs(run['head']).max(1)[m1] / b3[m1]).max())
     r['eta1'], r['eta_star'] = float(C['eta1']), float(C['eta_star'])
     # measured rates
     Wm = W.max(1)
     r['rate_W'] = decay_rate(t, Wm, 1e-3 * Wm[0], 1e-14 * Wm[0])
+    nem = ne.max(1)
+    r['rate_eps'] = decay_rate(t, nem, 1e-2 * nem[0], 1e-8 * nem[0])     # comparable with eta1 of Theorem 2
     Mx = M.max() if M.max() > 0 else 1.0
     r['rate_M'] = decay_rate(t, np.maximum(M, 1e-300), 1e-2 * Mx, 1e-8 * Mx)
     em = nerr.max(1)

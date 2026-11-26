@@ -1,0 +1,19 @@
+\begin{table}[t]
+\caption{Worst case over 280 closed-loop runs on the kinematic model (ratio: observed value divided by the bound, so that every ratio must not exceed 1; $Q_i$: integrated dissipation)}\label{tab:verif}
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llc@{}}
+\toprule
+Result & Quantity & Worst case\\
+\midrule
+Lemma~\ref{lem:wp} & $\min_t\vh_i-\hat v_{\min}$ & $+0.042$\,m/s\\
+Thm.~\ref{thm:conv}(i) & rise of $W_i$ between samples$/W_i(0)$ & $5\cdot10^{-17}$\\
+ & $|W_i+Q_i-W_i(0)|$ & $2\cdot10^{-11}$\,m$^2$\\
+Thm.~\ref{thm:conv}(ii) & ratio for $|\eps_i|$; $|\zeta_i|$, $|e_i|$ (coupled runs) & 0.995;\ 0.23\\
+Lemma~\ref{lem:strict} & decrease of $U_1$: guaranteed over actual & 0.52\\
+Lemma~\ref{lem:halanay} & $M(t)$ over $\sup_{s\le t}P(s)/\lambda$ & 0.568\\
+Thm.~\ref{thm:exp} & ratios for $|\eps_i|$, $|e_i|$, heading, $t\ge1$\,s & 0.88, 0.33, 0.03\\
+Thm.~\ref{thm:conv}(iii) & final $|e_i|$ (m), 60\,ms/1\,s/3\,s network & $10^{-13}$/$10^{-6}$/$10^{-3}$\\
+\bottomrule
+\end{tabular}
+\end{table}
