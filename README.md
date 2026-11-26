@@ -46,23 +46,27 @@ python3 paper/make_paper_figures.py     # all figures -> paper/figures/   (~15 s
 python3 paper/make_paper_tables.py      # all tables  -> paper/tables/    (~15 s)
 ```
 
-Both scripts only read `results/`; nothing is simulated. Numbers refer to the extended version (arXiv v2).
+Both scripts only read `results/`; nothing is simulated. Numbers refer to the extended version (arXiv v2); the
+conference version uses `fig_kin_cdc.pdf`, `fig_hifi.pdf`, `tab_hifi_cdc.tex` and `tab_verif.tex`.
 
-| Figure / table | Output | Data (script that produces it, wall time) |
+| Figure / table | Output | Data (experiment, wall time to recompute) |
 | --- | --- | --- |
-| Fig. 2 (verification) | `fig_kin.pdf` | `results/e3_*.npz` (E3, 16 min), `results/e5_formation.json` (E5, 4 min) |
-| Fig. 3 (high-fidelity model) | `fig_hifi.pdf` | `results/robust/r6_events*` (R6, 7 min), `results/robust/summary.json` (R3, 12 min) |
-| Fig. 4 (paths) | `fig_traj.pdf` | `results/e3_*_nominal_complete.npz` (E3) |
-| Fig. 5 (perturbations) | `fig_iss.pdf` | `results/e4_iss.json` (E4, 2 min) |
-| Figs. 6–16 (R0–R8) | `fig_r0_tuning.pdf` … `fig_r8_sensitivity.pdf` | `results/robust/<experiment>.json` and `<experiment>_ts.npz` (R0–R8) |
+| Fig. 2 (verification) | `fig_kin.pdf`, `fig_kin_cdc.pdf` | `results/e3_*.npz` (E3, 16 min), `results/e5_formation.json` (E5, 4 min) |
+| Fig. 3 (high-fidelity model) | `fig_hifi.pdf` | `results/robust/r6_events*` (R6, 7 min), `summary.json` (R3, 12 min), `r0_tuning_summary.json` (R0, 6 min) |
+| Fig. 4 (perturbations) | `fig_iss.pdf` | `results/e4_iss.json` (E4, 2 min) |
+| Figs. 5, 6, 7 | `fig_r3_network.pdf`, `fig_r4_simreal_steady.pdf`, `fig_r7_scaling.pdf` | R3, R4 (19 min), R7 (6 min) |
 | Table I | `tab_verif.tex` | `results/e3_summary.json` (E3) |
-| Table II | `tab_hifi.tex` | R0, R2, R5, R6, R7 |
+| Table II | `tab_hifi.tex`, `tab_hifi_cdc.tex` | R0, R2, R5, R6, R7, R7b |
 | Tables IV, V | `tab_scale.tex`, `tab_rates.tex` | `results/e1_prop1.json` (E1, 1.5 min), `results/e2_lemma2.json` (E2, 1 min) |
 | Tables VI, VII | `tab_meas.tex`, `tab_slip.tex` | E3, E5 |
-| Tables X–XVI | `tab_r0.tex` … `tab_r7b.tex` | R0, R1, R2, R5, R6, R7, R7b |
+| Tables IX, X, XI | `tab_r5.tex`, `tab_r6.tex`, `tab_r7b.tex` | R5 (11 min), R6, R7b (2 min) |
 
-Tables III, VIII and IX describe the setup and are written by hand. The numbers quoted in the text of Appendix B-B
-are in `results/robust/summary.json`.
+Fig. 1 and Tables III and VIII (setup and parameters) are written by hand. The figures and tables of the study that
+the paper does not show (for example the gain table of R0, the comparison of R1, the trajectories and tables of R2, the
+event IAE of R4, the distributions of R5, the curves of R6 and the sensitivity of R8) are produced by
+`experiments/robust/make_figures_robust.py` into `figures/robust/` and `tables/`. Most numbers quoted in Appendix B-B
+are in `results/robust/summary.json`; the others (for example the largest errors of runs that did not fail, the link
+failures of R6 and the counts of R0b) are computed from the per-run results in `results/robust/*.json`.
 
 ## Robustness study (R0–R9)
 
@@ -196,7 +200,7 @@ The constants of Theorem 2 in v2 do not depend on the delay bound (`agvsim/theor
   `check_stored.py` and `r9_numerics` compare all metrics, including the failure flag.
 - **Platform.** Bit-for-bit agreement is checked on Linux x86-64 with the pinned package versions
   (`results/robust/*.json` record the environment). Other platforms or library versions can differ in the last digits.
-- **Provenance.** The stored results were computed with an earlier, unpublished revision of `agvsim/` (commit and
+- **Provenance.** The stored results were computed with two earlier, unpublished revisions of `agvsim/` (commit and
   `code_hash` recorded in the results). Rerunning stored jobs with the published code reproduces their metrics bit for
   bit (`check_stored.py`, R9); the changes since then concern documentation, metadata and checks, not the numerics.
 - **Figures and tables.** `experiments/robust/make_figures_robust.py` and the scripts in `paper/` use the stored

@@ -3,15 +3,15 @@
     python3 paper/make_paper_tables.py        # -> paper/tables/*.tex
 
 Table I    tab_verif.tex    worst cases of the verification (E3: results/e3_summary.json)
-Table II   tab_hifi.tex     main results on the high-fidelity model (R0, R2, R5, R6, R7); tab_hifi_cdc.tex is the
-                            compact form of the conference version
+Table II   tab_hifi.tex     main results on the high-fidelity model (R0, R2, R5, R6, R7, R7b); tab_hifi_cdc.tex: the same
+                            table without experiment labels for the conference version
 Table IV   tab_scale.tex    rate per meter of Lemma 2 (E1: results/e1_prop1.json)
 Table V    tab_rates.tex    rate of Lemma 3 for a constant delay (E2: results/e2_lemma2.json)
 Table VI   tab_meas.tex     measured decay rates (E3)
 Table VII  tab_slip.tex     traction loss on the kinematic model (E5: results/e5_formation.json)
-Tables X-XVI tab_r0, tab_r1, tab_r2_nominal, tab_r2_event, tab_r5, tab_r6, tab_r7b (robustness study, through the
-           table functions of experiments/robust/make_figures_robust.py)
-Tables III, VIII and IX describe the set-up and are written by hand in the paper."""
+Tables IX-XI tab_r5, tab_r6, tab_r7b (robustness study, through the table functions of
+           experiments/robust/make_figures_robust.py; the remaining tables of the study are in tables/)
+Tables III and VIII describe the setup and are written by hand in the paper."""
 import json
 import math
 import os
@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 
 import make_figures_robust as mfr
 from agvsim import theory as th
+from agvsim.stats import paired_test, holm
 
 RES = os.path.join(ROOT, 'results')
 RESR = os.path.join(RES, 'robust')
@@ -89,6 +90,7 @@ def tab_verif():
 
 # ---------------------------------------------------------------- Table II
 def r5_ratios():
+    """Paired whole-run IAE ratios to no coupling over the random draws (R5) in which neither law failed."""
     doc, ts, rs = mfr.rows('r5_domain_rand')
     seeds = sorted(set(r['seed'] for r in rs))
     by = {(r['seed'], r['type']): r for r in rs}
@@ -98,80 +100,98 @@ def r5_ratios():
         fr = np.array([by[(s, typ)]['m_form_iae'] / by[(s, 'uncoupled')]['m_form_iae'] for s in ok])
         tr = np.array([by[(s, typ)]['m_track_iae'] / by[(s, 'uncoupled')]['m_track_iae'] for s in ok])
         out[typ] = dict(form_med=float(np.median(fr)), form_p95=float(np.quantile(fr, 0.95)), track_med=float(np.median(tr)),
-                        failed=int(sum(by[(s, typ)]['m_failed'] for s in seeds)), n=len(seeds))
+                        failed=int(sum(by[(s, typ)]['m_failed'] for s in seeds)), n=len(seeds), n_ok=len(ok))
     out['uncoupled'] = dict(failed=int(sum(by[(s, 'uncoupled')]['m_failed'] for s in seeds)), n=len(seeds))
+    # paired tests against the cascade (whole-run IAE, draws in which both did not fail), Holm over the three laws
+    for key in ('m_form_iae', 'm_track_iae'):
+        ps = {}
+        for typ in ('uncoupled', 'sigleak', 'direct'):
+            ok = [s for s in seeds if not by[(s, typ)]['m_failed'] and not by[(s, 'cascade')]['m_failed']]
+            ps[typ] = paired_test([by[(s, 'cascade')][key] for s in ok], [by[(s, typ)][key] for s in ok])[0]
+        for typ, pa in zip(ps, holm(list(ps.values()))):
+            out.setdefault(typ, {})['p_' + key] = float(pa)
     return out
 
 
+SIG = 0.01          # marks in Table II: paired difference from the cascade, Holm-corrected p < SIG
+
+
 def tab_hifi():
+    """Table II (extended and conference version): four laws, rows labeled by experiment; a dagger marks a paired
+    difference from the cascade (two-sided Wilcoxon signed-rank test, Holm correction over the three comparisons)."""
     S = json.load(open(os.path.join(RESR, 'summary.json')))
     r0 = json.load(open(os.path.join(RESR, 'r0_tuning_summary.json')))
     d0 = json.load(open(os.path.join(RESR, 'r0_tuning.json')))
     d7 = json.load(open(os.path.join(RESR, 'r7_scaling.json')))
+    d7b = json.load(open(os.path.join(RESR, 'r7b_normalised.json')))
     r5 = r5_ratios()
-    C = ('uncoupled', 'direct', 'cascade')
-    nom = [1e3 * S['r2'][f'warehouse/nominal/{c}']['pre_form'] for c in C]
-    ev = lambda case, k, sc=1.0, nd=2: ' & '.join(f"{sc * S['r6'][f'{case}/{c}'][k]:.{nd}f}" for c in C)
+    C = ('uncoupled', 'sigleak', 'direct', 'cascade')
+    _, _, r2 = mfr.rows('r2_realistic')
+    _, _, r6 = mfr.rows('r6_events')
+
+    def cells(rs, sel, key, scale, nd):
+        """Means over seeds and significance marks against the cascade."""
+        base = {r['seed']: r for r in mfr.sel(rs, type='cascade', **sel)}
+        ps = {}
+        for typ in ('uncoupled', 'sigleak', 'direct'):
+            rr = mfr.sel(rs, type=typ, **sel)
+            ps[typ] = paired_test([base[r['seed']][key] for r in rr], [r[key] for r in rr])[0]
+        padj = dict(zip(ps, holm(list(ps.values()))))
+        out = []
+        for typ in C:
+            v = scale * np.nanmean(mfr.vals(mfr.sel(rs, type=typ, **sel), key))
+            out.append(f'{v:.{nd}f}' + ('$^\\dagger$' if typ in padj and padj[typ] < SIG else ''))
+        return out
+
+    def fails(docs, pick):
+        k = [bool(m['failed']) for j, m in zip(docs['jobs'], docs['metrics']) if pick(j)]
+        return f'{sum(k)}/{len(k)}' if k else '--'
+    big = lambda typ: sum(r['failed'] for r in r0[typ]['rows'])
+    nr0 = lambda typ: 20 * len(r0[typ]['rows'])
     unc0 = [m for j, m in zip(d0['jobs'], d0['metrics']) if j['ctrl']['type'] == 'uncoupled']
-    big = {typ: [r for r in r0[typ]['rows'] if r['value'] == max(x['value'] for x in r0[typ]['rows'])][0] for typ in ('direct', 'cascade')}
-    f7 = {}
-    for c in C:
-        sel = [m for j, m in zip(d7['jobs'], d7['metrics']) if j.get('N') in (8, 12)
-               and ((j.get('graph') == 'none') if c == 'uncoupled' else (j.get('graph') == 'complete' and j['ctrl']['type'] == c))]
-        f7[c] = (sum(bool(m['failed']) for m in sel), len(sel))
-    H = lambda t: '\\multicolumn{4}{@{}l}{' + t + '}\\\\'
+    n7 = lambda d, typ, g: fails(d, lambda j: j.get('N') in (8, 12) and j['ctrl']['type'] == typ
+                                and (j.get('graph', 'complete') == g))
+    r5p = lambda typ, key: '$^\\dagger$' if r5[typ].get('p_' + key, 1.0) < SIG else ''
     rows = [
-        H('Nominal operation (R2)'),
-        '\\quad formation RMS (mm) & ' + ' & '.join(f'{x:.1f}' for x in nom) + '\\\\',
-        H('Traction loss (R6)'),
-        '\\quad peak formation error (mm) & ' + ev('traction', 'ev_peak', 1e3, 0) + '\\\\',
-        '\\quad formation IAE (m$\\cdot$s) & ' + ev('traction', 'ev_iae') + '\\\\',
-        '\\quad tracking IAE (m$\\cdot$s) & ' + ev('traction', 'ev_track_iae') + '\\\\',
-        H('Safety stop (R6)'),
-        '\\quad peak formation error (mm) & ' + ev('stop', 'ev_peak', 1e3, 0) + '\\\\',
-        '\\quad formation IAE (m$\\cdot$s) & ' + ev('stop', 'ev_iae') + '\\\\',
-        '\\quad tracking IAE (m$\\cdot$s) & ' + ev('stop', 'ev_track_iae') + '\\\\',
-        H('Random draws, whole run (R5)'),
-        f"\\quad formation IAE ratio, median & 1 & {r5['direct']['form_med']:.2f} & {r5['cascade']['form_med']:.2f}\\\\",
-        f"\\quad formation IAE ratio, 95th pct. & -- & {r5['direct']['form_p95']:.2f} & {r5['cascade']['form_p95']:.2f}\\\\",
-        f"\\quad tracking IAE ratio, median & 1 & {r5['direct']['track_med']:.2f} & {r5['cascade']['track_med']:.2f}\\\\",
-        H('Failed runs'),
-        f"\\quad largest tuning gains (R0) & {sum(bool(m['failed']) for m in unc0)}/{len(unc0)} & "
-        f"{big['direct']['failed']}/20 & {big['cascade']['failed']}/20\\\\",
-        '\\quad $N=8$ and 12, complete graph (R7) & ' + ' & '.join(f'{f7[c][0]}/{f7[c][1]}' for c in C) + '\\\\',
-        '\\quad random draws (R5) & ' + ' & '.join(f"{r5[c]['failed']}/{r5[c]['n']}" for c in C) + '\\\\']
+        ('Nominal (R2): formation RMS (mm)', cells(r2, dict(scen='warehouse', case='nominal'), 'pre_form', 1e3, 1)),
+        ('Traction loss (R6): peak (mm)', cells(r6, dict(case='traction'), 'ev_peak', 1e3, 0)),
+        ('\\quad formation IAE (m$\\cdot$s)', cells(r6, dict(case='traction'), 'ev_iae', 1, 2)),
+        ('\\quad tracking IAE (m$\\cdot$s)', cells(r6, dict(case='traction'), 'ev_track_iae', 1, 2)),
+        ('Safety stop (R6): peak (mm)', cells(r6, dict(case='stop'), 'ev_peak', 1e3, 0)),
+        ('\\quad formation IAE (m$\\cdot$s)', cells(r6, dict(case='stop'), 'ev_iae', 1, 2)),
+        ('\\quad tracking IAE (m$\\cdot$s)', cells(r6, dict(case='stop'), 'ev_track_iae', 1, 2)),
+        ('Random draws (R5): formation', ['1'] + [f"{r5[t]['form_med']:.2f}" + r5p(t, 'm_form_iae') for t in C[1:]]),
+        ('\\quad formation, 95th percentile', ['--'] + [f"{r5[t]['form_p95']:.2f}" for t in C[1:]]),
+        ('\\quad tracking', ['1'] + [f"{r5[t]['track_med']:.2f}" + r5p(t, 'm_track_iae') for t in C[1:]]),
+        ('Failed: all tuning gains (R0)', [f"{sum(bool(m['failed']) for m in unc0)}/{len(unc0)}"] +
+         [f'{big(t)}/{nr0(t)}' for t in C[1:]]),
+        ('\\quad $N=8$, 12, unit weights (R7)', [n7(d7, 'uncoupled', 'none'), '--', n7(d7, 'direct', 'complete'),
+                                                 n7(d7, 'cascade', 'complete')]),
+        ('\\quad $N=8$, 12, normalized (R7b)', ['--', '--', n7(d7b, 'direct', 'complete_norm'),
+                                                n7(d7b, 'cascade', 'complete_norm')]),
+        ('\\quad random draws (R5)', [f"{r5[t]['failed']}/{r5[t]['n']}" for t in C]),
+    ]
     write('tab_hifi', [
         '\\begin{table}[t]',
-        '\\caption{Main results on the high-fidelity model. R2: warehouse route, mean over 30 seeds; R6: warehouse route, '
-        'event of AGV~2 at 30\\,s, mean over 20 seeds, IAE over 15\\,s from the onset; R5: whole-run IAE relative to no '
-        'coupling, 150 random draws of all model parameters; failed: a tracking-error coordinate exceeded 3\\,m '
-        '(largest tuning gains $\\Lambda=8$\\,s$^{-1}$, $c=4$)}\\label{tab:hifi}',
-        '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{3.5pt}', '\\begin{tabular}{@{}lccc@{}}', '\\toprule',
-        ' & No coupling & Direct & Cascade\\\\', '\\midrule'] + rows + ['\\bottomrule', '\\end{tabular}', '\\end{table}'])
-
-
-    num = lambda case, k, sc=1.0, nd=2: [f"{sc * S['r6'][f'{case}/{c}'][k]:.{nd}f}" for c in C]
-    cdc = [('Nominal: formation RMS (mm)', [f'{x:.1f}' for x in nom]),
-           ('Traction loss: peak (mm)', num('traction', 'ev_peak', 1e3, 0)),
-           ('\\quad formation IAE (m$\\cdot$s)', num('traction', 'ev_iae')),
-           ('\\quad tracking IAE (m$\\cdot$s)', num('traction', 'ev_track_iae')),
-           ('Safety stop: peak (mm)', num('stop', 'ev_peak', 1e3, 0)),
-           ('\\quad formation IAE (m$\\cdot$s)', num('stop', 'ev_iae')),
-           ('\\quad tracking IAE (m$\\cdot$s)', num('stop', 'ev_track_iae')),
-           ('Random draws: formation ratio', ['1', f"{r5['direct']['form_med']:.2f}", f"{r5['cascade']['form_med']:.2f}"]),
-           ('\\quad 95th percentile', ['--', f"{r5['direct']['form_p95']:.2f}", f"{r5['cascade']['form_p95']:.2f}"]),
-           ('\\quad tracking ratio', ['1', f"{r5['direct']['track_med']:.2f}", f"{r5['cascade']['track_med']:.2f}"]),
-           ('Failed: largest tuning gains', [f"{sum(bool(m['failed']) for m in unc0)}/{len(unc0)}",
-                                             f"{big['direct']['failed']}/20", f"{big['cascade']['failed']}/20"]),
-           ('\\quad $N=8$, 12, complete graph', [f'{f7[c][0]}/{f7[c][1]}' for c in C]),
-           ('\\quad random draws', [f"{r5[c]['failed']}/{r5[c]['n']}" for c in C])]
+        '\\caption{Main results on the high-fidelity model: means over 30 (R2) and 20 (R6) seeds; R5: medians and 95th '
+        'percentile of the whole-run IAE relative to no coupling over the random draws without failure. $^\\dagger$: '
+        'paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, Holm-corrected)}\\label{tab:hifi}',
+        '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{2.4pt}', '\\begin{tabular}{@{}lcccc@{}}', '\\toprule',
+        ' & No coupl. & $\\sigma$-leak & Direct & Cascade\\\\', '\\midrule'] +
+        [lab + ' & ' + ' & '.join(v) + '\\\\' for lab, v in rows] + ['\\bottomrule', '\\end{tabular}', '\\end{table}'])
+    # conference version: the same table without the experiment labels of the extended version
+    import re
+    strip = lambda t: re.sub(r' \(R[0-9]b?\)', '', t)
     write('tab_hifi_cdc', [
         '\\begin{table}[t]',
-        '\\caption{Main results on the high-fidelity model (random draws: medians and 95th percentile of the whole-run IAE '
-        'relative to no coupling)}\\label{tab:hifi}',
-        '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{3.5pt}', '\\begin{tabular}{@{}lccc@{}}', '\\toprule',
-        ' & No coupling & Direct & Cascade\\\\', '\\midrule'] + [lab + ' & ' + ' & '.join(v) + '\\\\' for lab, v in cdc] +
-        ['\\bottomrule', '\\end{tabular}', '\\end{table}'])
+        '\\caption{Main results on the high-fidelity model: means over 30 seeds (nominal) and 20 seeds (events); random '
+        'draws: medians and 95th percentile of the whole-run IAE relative to no coupling over the draws without failure. '
+        '$^\\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, Holm-corrected)}'
+        '\\label{tab:hifi}',
+        '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{2.4pt}', '\\begin{tabular}{@{}lcccc@{}}', '\\toprule',
+        ' & No coupl. & $\\sigma$-leak & Direct & Cascade\\\\', '\\midrule'] +
+        [strip(lab) + ' & ' + ' & '.join(v) + '\\\\' for lab, v in rows] + ['\\bottomrule', '\\end{tabular}', '\\end{table}'])
+    return r5
 
 
 # ---------------------------------------------------------------- Tables IV-VII
@@ -231,21 +251,22 @@ def tab_slip():
     line = lambda lab, f: lab + ' & ' + ' & '.join(f(S[c]) for c in cols) + '\\\\'
     t = lambda x: f'{x:.2f}' if x < 10 else f'{x:.1f}'
     write('tab_slip', [
-        '\\begin{table*}[!t]',
+        '\\begin{table}[!t]',
         '\\caption{Traction loss of AGV~2 (40\\% of the commanded velocities for 2\\,s) on the kinematic model, warehouse '
-        'route; recovery times from the end of the traction loss}\\label{tab:slip}',
-        '\\centering\\footnotesize', '\\begin{tabular}{@{}lcccccc@{}}\\toprule',
+        'route, one run per setting; times from the end of the traction loss}\\label{tab:slip}',
+        '\\centering\\footnotesize', '\\setlength{\\tabcolsep}{2.4pt}', '\\begin{tabular}{@{}lcccccc@{}}\\toprule',
         ' & \\multicolumn{3}{c}{60\\,ms network} & \\multicolumn{3}{c}{1\\,s network}\\\\\\cmidrule(lr){2-4}\\cmidrule(l){5-7}',
-        ' & no coupling & $\\Lambda=1$ & $\\Lambda=3$ & no coupling & $\\Lambda=1$ & $\\Lambda=3$\\\\\\midrule',
-        line('Peak formation error (mm)', lambda r: f"{r['form_peak_mm']:.0f}"),
-        line('Peak tracking error, other AGVs (mm)', lambda r: f"{r['others_peak_mm']:.0f}"),
-        line('Formation error below 5\\,cm after (s)', lambda r: t(r['t_form_5cm'])),
-        line('All tracking errors below 5\\,cm after (s)', lambda r: t(r['t_track_5cm'])) + '\\bottomrule',
-        '\\end{tabular}', '\\end{table*}'])
+        '$\\Lambda$ (s$^{-1}$) & 0 & 1 & 3 & 0 & 1 & 3\\\\\\midrule',
+        line('Peak formation (mm)', lambda r: f"{r['form_peak_mm']:.0f}"),
+        line('Peak tracking, others (mm)', lambda r: f"{r['others_peak_mm']:.0f}"),
+        line('Formation $<5$\\,cm after (s)', lambda r: t(r['t_form_5cm'])),
+        line('Tracking $<5$\\,cm after (s)', lambda r: t(r['t_track_5cm'])) + '\\bottomrule',
+        '\\end{tabular}', '\\end{table}'])
 
 
 # ---------------------------------------------------------------- robustness tables (Appendix B-B)
 WIDE = {'tab_r1', 'tab_r2_nominal', 'tab_r2_event', 'tab_r6', 'tab_r7b'}
+PAPER_TABLES = {'tab_r5', 'tab_r6', 'tab_r7b'}      # robustness tables that appear in the paper
 WORDS = [('localisation', 'localization'), ('Localisation', 'Localization'), ('relocalisation', 'relocalization'),
          ('randomised', 'randomized'), ('Domain-randomised', 'Domain-randomized'), ('normalised', 'normalized'),
          ('mm\\,s', 'mm$\\cdot$s'), ('m\\,s', 'm$\\cdot$s'), ('\\,\\%', '\\%'), ('95\\,\\% CI', '95\\% bootstrap confidence interval'),
@@ -271,6 +292,8 @@ CAPTION = {   # additions and replacements of the study's captions
 
 
 def write_table(name, header, body, caption, label, colspec, note=None):
+    if name not in PAPER_TABLES:
+        return
     def fix(s):
         for a, b in WORDS:
             s = s.replace(a, b)
@@ -323,5 +346,5 @@ mfr.rows = rows_paper
 if __name__ == '__main__':
     tab_verif(); tab_hifi(); tab_scale(); tab_meas(); tab_slip()
     assert tab_rates(), 'a measured rate lies outside the interval of Lemma 3'
-    for f in ('r0', 'r1', 'r2', 'r5', 'r6', 'r7b'):
+    for f in ('r5', 'r6', 'r7b'):                  # tab_r5, tab_r6, tab_r7b (the other tables of the study: tables/)
         getattr(mfr, f)()

@@ -5,7 +5,8 @@
 
 Needs only the files in results/ and results/robust/ (results and time series are part of the repository); nothing is
 simulated. The figure functions of experiments/make_figures.py and experiments/robust/make_figures_robust.py are reused
-in the style of the paper; Figs. 2 and 3 and the figures of R0, R4, R6 and R7 are drawn here. Broadcast rates, fix
+in the style of the paper; Figs. 2 and 3 (and Fig. 2 of the conference version) and the figures of R4 and R7 are drawn
+here. The figures of the study that the paper does not show are made by experiments/robust/make_figures_robust.py. Broadcast rates, fix
 rates and fix latencies are plotted at the values realized on the control grid (agvsim.hifi.realized_timing)."""
 import json
 import os
@@ -81,6 +82,7 @@ _savefig = Figure.savefig
 
 
 def _savefig_paper(self, fname, *a, **k):
+    k.setdefault('metadata', {'CreationDate': None})      # byte-identical PDFs on every run
     for ax in self.axes:
         ax.set_xlabel(capfirst(ax.get_xlabel()))
         ax.set_ylabel(capfirst(ax.get_ylabel()))
@@ -177,9 +179,10 @@ def fig_kin():
 
 def fig_hifi():
     """Fig. 3: (a) traction loss, (b) safety stop of AGV 2 at 30 s (R6, 20 seeds, median and interquartile range);
-    (c) formation IAE after the traction loss relative to no coupling against the mean latency (R3, medians)."""
+    (c) formation IAE after the traction loss relative to no coupling against the mean latency (R3, medians);
+    (d) gain selection on the tuning seeds (R0): whole-run IAE ratios, crosses mark gains with failed runs."""
     doc, ts, rs = mfr.rows('r6_events')
-    fig, axs = plt.subplots(1, 3, figsize=(7.0, 1.45), gridspec_kw=dict(wspace=0.32))
+    fig, axs = plt.subplots(1, 4, figsize=(7.0, 1.5), gridspec_kw=dict(wspace=0.42))
     for ax, case, span, xl in ((axs[0], 'traction', (30.0, 32.0), (27, 38)), (axs[1], 'stop', (30.0, 33.0), (27, 45))):
         ax.axvspan(*span, color='#efeee8', lw=0, zorder=0)
         for typ in ('uncoupled', 'direct', 'cascade'):
@@ -191,59 +194,77 @@ def fig_hifi():
             ax.plot(t[m], med, color=col, ls=ls, label=lab, lw=1.05)
         ax.set_xlim(*xl); ax.set_ylim(0, None)
         ax.set_xlabel('Time (s)'); ax.set_ylabel('Formation error (m)')
-    axs[1].legend(loc='upper right', handlelength=2.0)
+    axs[1].legend(loc='upper right', handlelength=1.8, fontsize=6.3)
     S = json.load(open(os.path.join(RESR, 'summary.json')))
     r3 = S['r3']; base = r3['uncoupled']['ev_iae']
     lv = [0.01, 0.1, 0.3, 1.0, 2.0, 4.0]
     a3 = axs[2]
-    a3.axhline(1.0, color=CTRL['uncoupled'][0], ls=CTRL['uncoupled'][1], lw=1.1, label='No coupling')
+    a3.axhline(1.0, color=CTRL['uncoupled'][0], ls=CTRL['uncoupled'][1], lw=1.1)
     for typ in ('direct', 'cascade'):
         col, ls, lab, mk = CTRL[typ]
-        a3.semilogx(lv, [r3[f'latency/{typ}/{l}']['ev_iae'] / base for l in lv], color=col, ls=ls, marker=mk, ms=3.6,
+        a3.semilogx(lv, [r3[f'latency/{typ}/{l}']['ev_iae'] / base for l in lv], color=col, ls=ls, marker=mk, ms=3.4,
                     mec='white', mew=0.5, label=lab)
     a3.set_xticks(lv); a3.set_xticklabels(['0.01', '0.1', '0.3', '1', '2', '4']); a3.minorticks_off()
     a3.set_xlabel('Mean latency (s)'); a3.set_ylabel('Formation IAE ratio'); a3.set_ylim(0.65, 1.2)
-    a3.legend(loc='upper left', handlelength=2.0)
-    for a, s in zip(axs, ('(a)', '(b)', '(c)')):
-        tag(a, s)
+    a4 = axs[3]
+    T = json.load(open(os.path.join(RESR, 'r0_tuning_summary.json')))
+    a4.axhline(1, color=CTRL['uncoupled'][0], lw=0.8, ls=(0, (1.2, 1.2)))
+    a4.axvline(1, color=CTRL['uncoupled'][0], lw=0.8, ls=(0, (1.2, 1.2)))
+    for typ in ('sigleak', 'direct', 'cascade'):
+        col, ls, lab, mk = CTRL[typ]
+        rr = [r for r in T[typ]['rows'] if np.isfinite(r['form_ratio'])]
+        a4.plot([r['track_ratio'] for r in rr], [r['form_ratio'] for r in rr], color=col, ls=ls, marker=mk, ms=3.0,
+                mec='white', mew=0.4, lw=0.9, label=lab)
+        for r in rr:
+            if r['value'] == T[typ]['best']:
+                a4.plot(r['track_ratio'], r['form_ratio'], marker=mk, ms=7, mfc='none', mec=col, mew=1.0)
+            if r['failed']:
+                a4.plot(r['track_ratio'], r['form_ratio'], marker='x', ms=4.5, color=INK, mew=0.9, ls='none')
+                off = (-10, 1) if r['track_ratio'] < 1.3 else ((3, -7) if typ == 'direct' else (-9, 2))
+                a4.annotate(f"{r['failed']}", (r['track_ratio'], r['form_ratio']), textcoords='offset points',
+                            xytext=off, fontsize=6, color=INK)
+    a4.set_xscale('log'); a4.set_yscale('log'); a4.set_xlim(0.8, 80); a4.set_ylim(0.7, 15)
+    a4.set_xticks([1, 10]); a4.set_xticklabels(['1', '10']); a4.set_yticks([1, 10]); a4.set_yticklabels(['1', '10'])
+    a4.minorticks_off()
+    a4.set_xlabel('Tracking IAE ratio'); a4.set_ylabel('Formation IAE ratio')
+    h, l = a4.get_legend_handles_labels()
+    a4.legend(h[:1], l[:1], loc='upper left', handlelength=1.8, fontsize=6.3)     # sigma-leak; the others as in (b)
+    for a, t in zip(axs, ('(a)', '(b)', '(c)', '(d)')):
+        tag(a, t)
     fig.savefig(os.path.join(OUT, 'fig_hifi.pdf'))
     plt.close(fig)
 
 
-def fig_r0():
-    """Gain selection (R0): whole-run IAE ratios to no coupling; enlarged open markers: selected gains.
-    (a) all gains, (b) the region of small gains enlarged."""
-    S = json.load(open(os.path.join(RESR, 'r0_tuning_summary.json')))
-    fig, (ax, zx) = plt.subplots(1, 2, figsize=(7.0, 2.3), gridspec_kw=dict(wspace=0.28))
-    box = (0.93, 1.36, 0.77, 1.21)                      # x0, x1, y0, y1 of panel (b)
-    offs = {'cascade': (3, -8), 'sigleak': (3, 3), 'direct': (-10, 3)}
-    offs1 = {('direct', 0.1): (-13, 2), ('direct', 0.25): (-17, -2), ('direct', 0.5): (-17, -3), ('direct', 1.0): (4, -9)}
-    for typ in ('cascade', 'sigleak', 'direct'):
-        col, ls, lab, mk = CTRL[typ]
-        rr = [r for r in S[typ]['rows'] if np.isfinite(r['form_ratio'])]
-        for a in (ax, zx):
-            a.plot([r['track_ratio'] for r in rr], [r['form_ratio'] for r in rr], color=col, ls=ls, marker=mk,
-                   ms=3.8, mec='white', mew=0.5, label=lab)
-        for r in rr:
-            x, y = r['track_ratio'], r['form_ratio']
-            inside = box[0] <= x <= box[1] and box[2] <= y <= box[3]
-            for a in ((zx,) if inside else (ax,)):
-                if r['value'] == S[typ]['best']:
-                    a.plot(x, y, marker=mk, ms=9, mfc='none', mec=col, mew=1.2)
-                a.annotate(f"{r['value']:g}", (x, y), textcoords='offset points', fontsize=6.5, color=INK2,
-                           xytext=offs1.get((typ, r['value']), offs[typ]) if inside else offs[typ])
-    for a in (ax, zx):
-        a.axhline(1, color=CTRL['uncoupled'][0], lw=0.8, ls=(0, (3, 2)))
-        a.axvline(1, color=CTRL['uncoupled'][0], lw=0.8, ls=(0, (3, 2)))
-        a.set_xlabel('Tracking IAE / no coupling'); a.set_ylabel('Formation IAE / no coupling')
-    ax.set_xscale('log'); ax.set_yscale('log')
-    ax.add_patch(plt.Rectangle((box[0], box[2]), box[1] - box[0], box[3] - box[2], fill=False, ec=INK2, lw=0.6,
-                               ls=(0, (2, 1.5))))
-    zx.set_xlim(box[0], box[1]); zx.set_ylim(box[2], box[3])
-    ax.legend(loc='upper left')
-    for a, t in zip((ax, zx), ('(a)', '(b)')):
+def fig_kin_cdc():
+    """Fig. 2 of the conference version: (a) tracking error on three networks and without coupling (figure-8,
+    seed 7), (b) steady disagreement ratio against the factor of Proposition 1."""
+    fig, (a2, a3) = plt.subplots(1, 2, figsize=(3.45, 1.55), gridspec_kw=dict(wspace=0.5))
+    for net, lab, col, ls in NETS:
+        d = load_e3(net)
+        a2.semilogy(d['t'], np.linalg.norm(d['e'], axis=2).max(1), color=col, ls=ls, label=lab.replace(' network', ''))
+    dn = load_e3('nominal', 'none')
+    a2.semilogy(dn['t'], np.linalg.norm(dn['e'], axis=2).max(1), color=CTRL['uncoupled'][0], ls=CTRL['uncoupled'][1],
+                lw=1.1, label='no coupling')
+    a2.set_ylim(1e-15, 5); a2.set_yticks([1e-15, 1e-10, 1e-5, 1]); a2.minorticks_off()
+    a2.set_xlim(0, 75); a2.set_xlabel('Time (s)'); a2.set_ylabel(r'$\max_i |e_i|$ (m)')
+    a2.legend(loc='lower left', fontsize=5.6, handlelength=1.6, labelspacing=0.15)
+    d = json.load(open(RES + 'e5_formation.json'))
+    st = [r for r in d['static'] if 'disagreement_ratio' in r and r['Lam'] > 0]
+    for gname, mk, glab in (('complete3', 'o', 'complete'), ('path4', 's', 'path')):
+        for net, col, nlab in (('nominal', NETS[0][2], '60 ms'), ('slow3', NETS[2][2], '3 s')):
+            rr = [r for r in st if r['graph'] == gname and r['net'] == net]
+            sty = dict(ms=3.2, color=col, mec='white', mew=0.4) if net == 'nominal' else \
+                dict(ms=5.6, mfc='none', mec=col, mew=0.8)
+            a3.loglog([r['predicted_factor'] for r in rr], [r['disagreement_ratio'] for r in rr], mk, ls='none',
+                      label=f'{glab}, {nlab}', zorder=3 if net == 'nominal' else 2, **sty)
+    x = np.array([0.02, 1.0])
+    a3.loglog(x, x, color=INK2, lw=0.7, ls=(0, (3, 2)), zorder=0)
+    a3.set_xlabel(r'Factor $\lambda/(\lambda+\Lambda\lambda_2(L))$'); a3.set_ylabel('Measured ratio')
+    a3.legend(loc='upper left', handlelength=1.0, handletextpad=0.3, fontsize=5.6, labelspacing=0.15)
+    a3.set_xlim(0.02, 1.2); a3.set_ylim(0.02, 1.2)
+    for a, t in zip((a2, a3), ('(a)', '(b)')):
         tag(a, t)
-    fig.savefig(os.path.join(OUT, 'fig_r0_tuning.pdf'))
+    fig.savefig(os.path.join(OUT, 'fig_kin_cdc.pdf'))
     plt.close(fig)
 
 
@@ -259,8 +280,7 @@ NOMINAL = dict(mfr.NOMINAL, loc_rate=hf.realized_timing(50.0, 20.0, f_fix=20.0)[
 def fig_r4():
     """Practical factors one at a time (R4): medians over 8 seeds; dotted: nominal (realized) value."""
     doc, ts, rs = mfr.rows('r4_simreal')
-    for metric, ylab, name, scale in (('pre_form', 'Formation RMS (mm)', 'r4_simreal_steady', 1e3),
-                                      ('ev_iae', 'Formation IAE (m$\\cdot$s)', 'r4_simreal_event', 1.0)):
+    for metric, ylab, name, scale in (('pre_form', 'Formation RMS (mm)', 'r4_simreal_steady', 1e3),):
         fig, axs = plt.subplots(3, 4, figsize=(7.0, 5.9))
         for ax, (fac, xl) in zip(axs.ravel(), FACT):
             for typ in ('uncoupled', 'sigleak', 'direct', 'cascade'):
@@ -282,27 +302,6 @@ def fig_r4():
         fig.tight_layout(h_pad=0.7, w_pad=0.5)
         fig.savefig(os.path.join(OUT, 'fig_' + name + '.pdf'))
         plt.close(fig)
-
-
-def fig_r6():
-    """Events (R6, AGV 2 at 30 s): formation error, median and interquartile range over 20 seeds."""
-    doc, ts, rs = mfr.rows('r6_events')
-    cases = [('traction', '(a) Traction loss of AGV 2 (40% for 2 s)'), ('stop', '(b) Safety stop of AGV 2 (3 s)'),
-             ('reloc', '(c) Relocalization jump of AGV 2 (10 cm)'), ('switching', '(d) Traction loss, switching links')]
-    fig, axs = plt.subplots(2, 2, figsize=(7.0, 3.6))
-    for ax, (case, ttl) in zip(axs.ravel(), cases):
-        for typ in ('uncoupled', 'sigleak', 'direct', 'cascade'):
-            col, ls, lab, _ = CTRL[typ]
-            t, Y = mfr.stack_ts(ts, mfr.sel(rs, case=case, type=typ), 'form')
-            q1, med, q3 = np.nanquantile(Y, [0.25, 0.5, 0.75], axis=0)
-            ax.fill_between(t, q1, q3, color=col, alpha=0.2, lw=0)
-            ax.plot(t, med, color=col, ls=ls, lw=1.05, label=lab)
-        ax.set_title(ttl, loc='left'); ax.set_xlim(25, 45); ax.set_ylim(0, None)
-        ax.set_xlabel('Time (s)'); ax.set_ylabel('Formation error (m)')
-    axs[0, 1].legend(loc='upper right')
-    fig.tight_layout(h_pad=0.8, w_pad=1.0)
-    fig.savefig(os.path.join(OUT, 'fig_r6_events.pdf'))
-    plt.close(fig)
 
 
 # graphs of R7: hue and marker per graph (pairwise OKLab distance >= 17 normal, >= 9 under simulated CVD)
@@ -341,11 +340,9 @@ def fig_r7():
     plt.close(fig)
 
 
-FIGS = {
-    'kin': fig_kin, 'hifi': fig_hifi,
-    'traj': lambda: mf.fig_traj(), 'iss': lambda: mf.fig_iss(),
-    'r0': fig_r0, 'r1': lambda: mfr.r1(), 'r2': lambda: mfr.r2(), 'r3': lambda: mfr.r3(), 'r4': fig_r4,
-    'r5': lambda: mfr.r5(), 'r6': fig_r6, 'r7': fig_r7, 'r8': lambda: mfr.r8(),
+FIGS = {                                              # the figures of the paper (the study's figures: figures/)
+    'kin': fig_kin, 'kin_cdc': fig_kin_cdc, 'hifi': fig_hifi, 'iss': lambda: mf.fig_iss(),
+    'r3': lambda: mfr.r3(), 'r4': fig_r4, 'r7': fig_r7,
 }
 UNUSED = ('fig_r3_network_tracking.pdf',)            # by-product of mfr.r3, not used in the paper
 
