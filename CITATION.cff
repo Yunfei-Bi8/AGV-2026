@@ -4,7 +4,7 @@ title: "Delay-Tolerant Formation Tracking for Multi-AGV Systems via Reference-Sh
 authors:
   - family-names: Bi
     given-names: Yunfei
-repository-code: "https://github.com/Yunfei-Bi8/AGV-2026"
+repository-code: "https://github.com/Yunfei-Bi8/Delay-tolerant-agv-formation"
 license: MIT
 url: "https://bi-yunfei.github.io/agv-formation/"
 preferred-citation:
