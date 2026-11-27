@@ -104,3 +104,62 @@ def Delta_size(dv, dn, dw, b):
 def direct_hstar(k1, k2, k3, c, dmax, vmax):
     """Delay bound h* of the direct coupling (Proposition 2)."""
     return 1.0 / (c * dmax * max(k1, k2 * vmax ** 2 / k3))
+
+
+# ---------------------------------------------------------------- additions for the CDC version (arXiv v2)
+def asymptotic_rate(psi, b, kappa_r, vmin, ell=1.0):
+    """Rate of |eps_i| that Lemma 2 gives from some finite time on (Remark 2): there g_i, w_i -> 0, so that the
+    curvature bound kappa-bar can be replaced by the curvature bound kappa_r of the planner's references and
+    vhat_min by vmin (any larger kappa and smaller speed; the limit is returned)."""
+    al = alpha_ell(psi, b, kappa_r, ell)
+    return al * b * vmin / (2 * c12(al, b)[1])
+
+
+def direct_delay_margin(psi, b, cd, v):
+    """Delay margin of the linearized direct coupling (Section V): straight reference at speed v, uniform delay,
+    d-regular graph, product cd of coupling gain and degree. The lateral modes are s^2 + k s + b v^2 (1 + c d - c a e^{-s tau})
+    with k = 2 psi sqrt(b) v and |a| <= d; all are stable for every delay iff c d < 2 psi (1 + psi). Otherwise the
+    mode a = d has roots on the imaginary axis at the returned smallest delay (inf if c d < 2 psi (1 + psi))."""
+    if cd < 2 * psi * (1 + psi):
+        return np.inf
+    K0, K1, k2 = 1.0 + cd, cd, 4 * psi ** 2                 # normalized by b v^2; s = sqrt(b) v sigma
+    B, C = k2 - 2 * K0, K0 ** 2 - K1 ** 2
+    best = np.inf
+    for W2 in ((-B + np.sqrt(B * B - 4 * C)) / 2, (-B - np.sqrt(B * B - 4 * C)) / 2):
+        if W2 <= 0:
+            continue
+        W = np.sqrt(W2)
+        ang = np.angle(K0 - W2 + 2j * psi * W)               # K1 e^{-j W T} = K0 - W^2 + j 2 psi W
+        best = min(best, ((-ang) % (2 * np.pi)) / W)
+    return best / (np.sqrt(b) * v)
+
+
+def filter_response(w, tau, lam, Lam, gam, d, a):
+    """Frequency response e = H(j w) eps of the unsaturated filter network (Remark 3) for the mode of a d-regular
+    graph whose adjacency eigenvalue is a (Laplacian eigenvalue d - a), uniform delay tau:
+    H(s) = 1 - Lam (d - a e^{-s tau}) / ((1 + s/gam)(s + lam + Lam d - Lam a e^{-s tau}))."""
+    s = 1j * np.asarray(w, float)
+    q = np.exp(-s * tau)
+    return 1 - Lam * (d - a * q) / ((1 + s / gam) * (s + lam + Lam * d - Lam * a * q))
+
+
+def direct_rhp_roots(psi, b, cd, v, tau, a_over_d=1.0):
+    """Number of roots in the open right half-plane of the lateral mode s^2 + k s + b v^2 (1 + c d - c a e^{-s tau}) of the
+    linearized direct coupling (a = a_over_d * d; a_over_d = 1: common mode). Counted from the imaginary-axis
+    crossings (stability switches): crossings at the larger frequency enter the right half-plane, those at the smaller
+    one leave it; the mode is stable at tau = 0."""
+    K0, q = 1.0 + cd, -cd * a_over_d                       # normalized: sigma^2 + 2 psi sigma + K0 + q e^{-sigma T}
+    T = np.sqrt(b) * v * tau
+    B, C = 4 * psi ** 2 - 2 * K0, K0 ** 2 - q ** 2
+    disc = B * B - 4 * C
+    if disc <= 0:
+        return 0
+    n = 0
+    for W2, sgn in (((-B + np.sqrt(disc)) / 2, 1), ((-B - np.sqrt(disc)) / 2, -1)):
+        if W2 <= 0:
+            continue
+        W = np.sqrt(W2)
+        T0 = ((-np.angle(-(K0 - W2 + 2j * psi * W) / q)) % (2 * np.pi)) / W    # p(jW) + q e^{-jWT} = 0
+        if T > T0:
+            n += 2 * sgn * (int(np.floor((T - T0) * W / (2 * np.pi))) + 1)
+    return max(n, 0)

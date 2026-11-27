@@ -1,6 +1,6 @@
 """Reproduce the whole robustness study:  python3 run_all.py [--force] [r0 r1 ...]
 
-Runs the unit tests, the experiments R0-R9 (R0 first: the tuned gains are used by all others), then the figures and
+Runs the unit tests, the experiments R0-R12 (R0 first: the tuned gains are used by all others), then the figures and
 tables of the study and, without a selection, those of the paper (paper/).  An experiment is skipped when both its
 results and its time series are stored, unless --force is given.  The repository ships both (results/robust/*.json
 and *_ts.npz), so a plain call only regenerates figures and tables (about 1 minute plus the unit tests); --force
@@ -9,7 +9,7 @@ import os, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXP = ['r0_tuning', 'r0b_direct_divergence', 'r1_paper_delays', 'r2_realistic', 'r3_network', 'r4_simreal', 'r5_domain_rand', 'r6_events',
-       'r7_scaling', 'r7b_normalised', 'r8_sensitivity', 'r9_numerics']
+       'r7_scaling', 'r7b_normalised', 'r8_sensitivity', 'r9_numerics', 'r10_delay_margin', 'r11_highgain', 'r12_age_gate']
 
 NO_TS = {'r0b_direct_divergence'}                     # stores no time series
 EXTRA = {'r2_realistic': ['r2_trajectories.npz']}     # recorded trajectories for the figures
@@ -32,7 +32,7 @@ def main():
             continue
         print('run ', e, flush=True)
         subprocess.run([sys.executable, e + '.py'], cwd=os.path.join(HERE, 'experiments', 'robust'), check=True)
-    figs = sorted({e.split('_')[0] for e in todo} - {'r0b'})
+    figs = sorted({e.split('_')[0] for e in todo} - {'r0b', 'r10', 'r11', 'r12'})   # R10-R12: paper figures only
     if sel and not figs:
         return
     subprocess.run([sys.executable, 'make_figures_robust.py'] + (figs if sel else []),

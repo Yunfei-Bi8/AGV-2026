@@ -1,25 +1,27 @@
 \begin{table}[t]
-\caption{Main results on the high-fidelity model: means over 30 (R2) and 20 (R6) seeds on the warehouse route; R5: medians and 95th percentile of the whole-run IAE relative to no coupling over the random draws without failure; R7, R7b: complete graphs. $^\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, for R5 on log ratios; Holm-corrected within each row)}\label{tab:hifi}
+\caption{Main results on the detailed AGV model: means over 30 (R2) and 20 (R6) seeds on the warehouse route; R5: medians and 95th percentile of the whole-run IAE relative to no coupling over the random draws without failure; R7, R7b: complete graphs; high gain: R11. $^\dagger$: paired difference from the cascade, $p<0.01$ (Wilcoxon signed-rank test, for R5 on log ratios; Holm-corrected over the four comparisons in each row)}\label{tab:hifi}
 \centering\footnotesize
-\setlength{\tabcolsep}{2.4pt}
-\begin{tabular}{@{}lcccc@{}}
+\setlength{\tabcolsep}{2.0pt}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
- & No coupl. & $\sigma$-leak & Direct & Cascade\\
+ & None & High g. & $\sigma$-leak & Direct & Cascade\\
 \midrule
-Nominal (R2): formation RMS (mm) & 28.2 & 49.1$^\dagger$ & 28.5$^\dagger$ & 27.7\\
-Traction loss (R6): peak (mm) & 517$^\dagger$ & 649$^\dagger$ & 331$^\dagger$ & 380\\
-\quad formation IAE (m$\cdot$s) & 1.24$^\dagger$ & 3.91$^\dagger$ & 0.91$^\dagger$ & 0.98\\
-\quad tracking IAE (m$\cdot$s) & 0.52$^\dagger$ & 2.46$^\dagger$ & 0.60$^\dagger$ & 0.93\\
-Safety stop (R6): peak (mm) & 2287$^\dagger$ & 1407$^\dagger$ & 1574$^\dagger$ & 1341\\
-\quad formation IAE (m$\cdot$s) & 10.06$^\dagger$ & 9.16$^\dagger$ & 6.83$^\dagger$ & 5.35\\
-\quad tracking IAE (m$\cdot$s) & 3.47$^\dagger$ & 9.91$^\dagger$ & 5.59$^\dagger$ & 6.78\\
-Random draws (R5): formation & 1$^\dagger$ & 2.34$^\dagger$ & 0.88 & 0.89\\
-\quad formation, 95th percentile & 1 & 16.85 & 2.33 & 1.24\\
-\quad tracking & 1$^\dagger$ & 2.36$^\dagger$ & 1.00$^\dagger$ & 1.24\\
-Failed: all tuning gains (R0) & 0/20 & 1/120 & 36/120 & 0/120\\
-\quad $N=8$, 12, unit weights (R7) & 0/12 & -- & 12/12 & 0/12\\
-\quad $N=8$, 12, normalized (R7b) & -- & -- & 0/12 & 0/12\\
-\quad random draws (R5) & 0/150 & 19/150 & 3/150 & 0/150\\
+Nominal (R2): form.\ RMS (mm) & 28.2 & 27.8 & 49.1$^\dagger$ & 28.5$^\dagger$ & 27.7\\
+\quad RMS of $\dot v_i$ (m/s$^2$) & 0.70$^\dagger$ & 1.41$^\dagger$ & 0.68$^\dagger$ & 1.48$^\dagger$ & 0.65\\
+\quad heading RMS (deg) & 0.55$^\dagger$ & 0.87$^\dagger$ & 2.61$^\dagger$ & 0.98$^\dagger$ & 1.07\\
+Traction loss (R6): peak (mm) & 517$^\dagger$ & 447$^\dagger$ & 649$^\dagger$ & 331$^\dagger$ & 380\\
+\quad form.\ IAE (m$\cdot$s) & 1.24$^\dagger$ & 1.07$^\dagger$ & 3.91$^\dagger$ & 0.91$^\dagger$ & 0.98\\
+\quad track.\ IAE (m$\cdot$s) & 0.52$^\dagger$ & 0.45$^\dagger$ & 2.46$^\dagger$ & 0.60$^\dagger$ & 0.93\\
+Safety stop (R6): peak (mm) & 2287$^\dagger$ & 2281$^\dagger$ & 1407$^\dagger$ & 1574$^\dagger$ & 1341\\
+\quad form.\ IAE (m$\cdot$s) & 10.06$^\dagger$ & 10.03$^\dagger$ & 9.16$^\dagger$ & 6.83$^\dagger$ & 5.35\\
+\quad track.\ IAE (m$\cdot$s) & 3.47$^\dagger$ & 3.45$^\dagger$ & 9.91$^\dagger$ & 5.59$^\dagger$ & 6.78\\
+Random draws (R5): form. & 1$^\dagger$ & 0.93 & 2.34$^\dagger$ & 0.88 & 0.89\\
+\quad form., 95th percentile & 1 & 1.10 & 16.85 & 2.33 & 1.24\\
+\quad track. & 1$^\dagger$ & 0.92$^\dagger$ & 2.36$^\dagger$ & 1.00$^\dagger$ & 1.24\\
+Failed: tuning gains (R0) & 0/20 & 16/120 & 1/120 & 36/120 & 0/120\\
+\quad $N=8$, 12, unit weights (R7) & 0/12 & 11/12 & -- & 12/12 & 0/12\\
+\quad $N=8$, 12, normalized (R7b) & -- & 0/12 & -- & 0/12 & 0/12\\
+\quad random draws (R5) & 0/150 & 0/150 & 19/150 & 3/150 & 0/150\\
 \bottomrule
 \end{tabular}
 \end{table}

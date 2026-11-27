@@ -43,7 +43,7 @@ class TestNetwork(unittest.TestCase):
         """All controllers draw the same random numbers: after a run, every stream (initial errors, network, sensors,
         disturbances, clocks, vehicle parameters) is in the same state, whichever controller was used."""
         states = []
-        for typ in ('uncoupled', 'cascade', 'sigleak', 'direct'):
+        for typ in ('uncoupled', 'cascade', 'sigleak', 'direct', 'highgain'):
             out = hf.HifiSim('warehouse', hf.graph('complete', 3), ctrl=dict(type=typ), sim=dict(record_rng=True),
                              seed=11, T=4.0).run()
             self.assertFalse(out['failed'])
@@ -85,6 +85,28 @@ class TestSimulation(unittest.TestCase):
         diff = np.abs(R['e'][k] - e_ev).max()
         print(f'  [ideal limit] max |e| difference between the two simulators: {diff:.2e} m')
         self.assertLess(diff, 2e-3, f'max difference {diff:.2e} m')
+
+
+class TestTheory(unittest.TestCase):
+    def test_delay_margin_of_direct_coupling(self):
+        """Proposition 2: no margin below c d = 2 psi (1 + psi); above, the first crossing of direct_delay_margin is where
+        direct_rhp_roots becomes positive, and the margin scales with 1/v."""
+        from agvsim import theory as th
+        self.assertEqual(th.direct_delay_margin(0.7, 3.0, 2.3, 0.6), np.inf)
+        for cd in (2.5, 4.0, 8.0):
+            tc = th.direct_delay_margin(0.7, 3.0, cd, 0.6)
+            self.assertEqual(th.direct_rhp_roots(0.7, 3.0, cd, 0.6, 0.99 * tc), 0)
+            self.assertGreater(th.direct_rhp_roots(0.7, 3.0, cd, 0.6, 1.01 * tc), 0)
+            self.assertAlmostEqual(th.direct_delay_margin(0.7, 3.0, cd, 1.2), tc / 2, places=12)
+        for tau in np.linspace(0.0, 20.0, 201):
+            self.assertEqual(th.direct_rhp_roots(0.7, 3.0, 2.3, 0.6, tau), 0)
+
+    def test_filter_response(self):
+        """Remark 2: the DC gain is the factor of Proposition 1, for every delay; the common mode passes unchanged."""
+        from agvsim import theory as th
+        for tau in (0.0, 0.5, 3.0):
+            self.assertAlmostEqual(abs(th.filter_response(0.0, tau, 1.0, 3.0, 5.0, 2, -1)), 1.0 / (1.0 + 3 * 3.0))
+            self.assertAlmostEqual(abs(th.filter_response(0.0, tau, 1.0, 3.0, 5.0, 2, 2)), 1.0)
 
 
 if __name__ == '__main__':

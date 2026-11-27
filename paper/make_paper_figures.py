@@ -1,5 +1,5 @@
-"""Figures from the stored results. The paper (arXiv v2) uses fig_kin_cdc.pdf (Fig. 2) and fig_hifi.pdf (Fig. 3); the
-other figures document the study.
+"""Figures from the stored results. The paper (arXiv v2 and the CDC version) uses fig_kin_cdc.pdf (Fig. 2) and
+fig_hifi.pdf (Fig. 3); the other figures document the study.
 
     python3 paper/make_paper_figures.py            # all figures  -> paper/figures/fig_*.pdf
     python3 paper/make_paper_figures.py kin hifi   # selected figures
@@ -30,6 +30,8 @@ from matplotlib.figure import Figure
 import make_figures as mf                 # verification study (kinematic model)
 import make_figures_robust as mfr         # robustness study (high-fidelity model)
 from agvsim import hifi as hf
+from agvsim import runner
+from agvsim import theory as th
 
 RES = os.path.join(ROOT, 'results') + '/'
 RESR = os.path.join(ROOT, 'results', 'robust')
@@ -183,7 +185,7 @@ def fig_hifi():
     (c) formation IAE after the traction loss relative to no coupling against the mean latency (R3, medians);
     (d) gain selection on the tuning seeds (R0): whole-run IAE ratios, crosses mark gains with failed runs."""
     doc, ts, rs = mfr.rows('r6_events')
-    fig, axs = plt.subplots(1, 4, figsize=(7.0, 1.26), gridspec_kw=dict(wspace=0.42))
+    fig, axs = plt.subplots(1, 4, figsize=(7.0, 1.16), gridspec_kw=dict(wspace=0.42))
     for ax, case, span, xl in ((axs[0], 'traction', (30.0, 32.0), (27, 38)), (axs[1], 'stop', (30.0, 33.0), (27, 45))):
         ax.axvspan(*span, color='#efeee8', lw=0, zorder=0)
         for typ in ('uncoupled', 'direct', 'cascade'):
@@ -206,6 +208,15 @@ def fig_hifi():
         col, ls, lab, mk = CTRL[typ]
         a3.semilogx(lv, [r3[f'latency/{typ}/{l}']['ev_iae'] / base for l in lv], color=col, ls=ls, marker=mk, ms=3.4,
                     mec='white', mew=0.5, label=lab)
+    _, _, r12 = mfr.rows('r12_age_gate')                   # age gate of 1.5 s (R12): thin lines, same base
+    for typ in ('direct', 'cascade'):
+        col, ls, lab, mk = CTRL[typ]
+        a3.semilogx(lv, [np.median([r['ev_iae'] for r in r12 if r['type'] == typ and abs(r['level'] - l) < 1e-9]) / base
+                         for l in lv], color=col, ls=ls, lw=0.55, marker=mk, ms=2.0, mec=col, mfc='white', mew=0.5,
+                    zorder=1)
+    from matplotlib.lines import Line2D
+    a3.legend([Line2D([], [], color=INK2, lw=0.55, marker='o', ms=2.0, mfc='white', mec=INK2, mew=0.5)],
+              ['age gate 1.5 s'], loc='lower right', fontsize=6.0, handlelength=1.6, borderaxespad=0.2)
     a3.set_xticks(lv); a3.set_xticklabels(['0.01', '0.1', '0.3', '1', '2', '4']); a3.minorticks_off()
     a3.set_xlabel('Mean latency (s)'); a3.set_ylabel('Formation IAE ratio'); a3.set_ylim(0.65, 1.2)
     a4 = axs[3]
@@ -237,19 +248,48 @@ def fig_hifi():
     plt.close(fig)
 
 
+def r10_outcomes():
+    """Per gain and latency of R10: whether the tracking errors of every seed decayed. A run decayed when the largest
+    tracking error in the last 10 s (110-120 s) is below 1 micrometer or below its value in 55-65 s."""
+    doc, ts = runner.load('r10_delay_margin')
+    out = {}
+    for i, (j, m) in enumerate(zip(doc['jobs'], doc['metrics'])):
+        typ = j['ctrl']['type']
+        g = j['ctrl']['c'] if typ == 'direct' else j['ctrl']['Lam']
+        if m.get('failed'):
+            ok = False
+        else:
+            t, e = ts[f'{i}/t'], ts[f'{i}/track_max']
+            late, mid = e[t >= 110.0 - 1e-9].max(), e[(t >= 55.0 - 1e-9) & (t <= 65.0 + 1e-9)].max()
+            ok = bool(late < 1e-6 or late < mid)
+        key = (typ, g, j['latency'])
+        out[key] = out.get(key, True) and ok
+    return out
+
+
 def fig_kin_cdc():
-    """Fig. 2 of the paper: (a) tracking error on three networks and without coupling (figure-8,
-    seed 7), (b) steady disagreement ratio against the factor of Proposition 1."""
-    fig, (a2, a3) = plt.subplots(1, 2, figsize=(3.45, 1.3), gridspec_kw=dict(wspace=0.5))
-    for net, lab, col, ls in NETS:
-        d = load_e3(net)
-        a2.semilogy(d['t'], np.linalg.norm(d['e'], axis=2).max(1), color=col, ls=ls, label=lab.replace(' network', ''))
-    dn = load_e3('nominal', 'none')
-    a2.semilogy(dn['t'], np.linalg.norm(dn['e'], axis=2).max(1), color=CTRL['uncoupled'][0], ls=CTRL['uncoupled'][1],
-                lw=1.1, label='no coupling')
-    a2.set_ylim(1e-15, 5); a2.set_yticks([1e-15, 1e-10, 1e-5, 1]); a2.minorticks_off()
-    a2.set_xlim(0, 75); a2.set_xlabel('Time (s)'); a2.set_ylabel(r'$\max_i |e_i|$ (m)')
-    a2.legend(loc='lower left', fontsize=5.6, handlelength=1.6, labelspacing=0.15)
+    """Fig. 2 of the paper: (a) delay margin of the direct coupling (Proposition 2, R10): region where the linearization
+    is unstable and simulated outcomes; (b) steady disagreement ratio against the prediction of Proposition 1 (straight
+    reference, E5) and of Remark 3 (circle, E7)."""
+    fig, (a1, a3) = plt.subplots(1, 2, figsize=(3.45, 1.22), gridspec_kw=dict(wspace=0.52))
+    psi, b, v, Ts = 0.7, 3.0, 0.6, 0.05                   # R10: line at 0.6 m/s, 20 Hz broadcasts (mean age: latency + Ts/2)
+    taus = np.linspace(0.0, 4.3, 431)
+    cds = np.linspace(0.0, 10.6, 425)
+    Z = np.array([[th.direct_rhp_roots(psi, b, cd, v, tau) > 0 for tau in taus] for cd in cds])
+    a1.contourf(taus, cds, Z.astype(float), levels=[0.5, 1.5], colors=['#f6d3c2'], zorder=0)
+    a1.contour(taus, cds, Z.astype(float), levels=[0.5], colors=[CTRL['direct'][0]], linewidths=0.6, zorder=1)
+    thr = 2 * psi * (1 + psi)
+    a1.axhline(thr, color=INK2, lw=0.6, ls=(0, (3, 2)), zorder=1)
+    oc = r10_outcomes()
+    pts = [(lat + Ts / 2, 2 * g, ok) for (typ, g, lat), ok in oc.items() if typ == 'direct']
+    x = [p[0] for p in pts if p[2]]; y = [p[1] for p in pts if p[2]]
+    a1.plot(x, y, 'o', ms=2.6, color=CTRL['cascade'][0], mec='white', mew=0.3, ls='none', label='decayed', zorder=3)
+    x = [p[0] for p in pts if not p[2]]; y = [p[1] for p in pts if not p[2]]
+    a1.plot(x, y, 'x', ms=3.4, color=INK, mew=0.8, ls='none', label='did not decay', zorder=3)
+    a1.set_xlim(0, 4.3); a1.set_ylim(0, 10.6); a1.set_yticks([0, 2, 4, 6, 8])
+    a1.set_xlabel('Delay (s)'); a1.set_ylabel('$cd$')
+    a1.legend(loc='upper left', ncol=2, fontsize=5.4, handlelength=0.8, handletextpad=0.25, columnspacing=0.6,
+              borderaxespad=0.05)
     d = json.load(open(RES + 'e5_formation.json'))
     st = [r for r in d['static'] if 'disagreement_ratio' in r and r['Lam'] > 0]
     for gname, mk, glab in (('complete3', 'o', 'complete'), ('path4', 's', 'path')):
@@ -259,12 +299,15 @@ def fig_kin_cdc():
                 dict(ms=5.6, mfc='none', mec=col, mew=0.8)
             a3.loglog([r['predicted_factor'] for r in rr], [r['disagreement_ratio'] for r in rr], mk, ls='none',
                       label=f'{glab}, {nlab}', zorder=3 if net == 'nominal' else 2, **sty)
+    c7 = [r for r in json.load(open(RES + 'e7_curved.json'))['runs'] if r['route'] == 'circle']
+    a3.loglog([r['H_abs'] for r in c7], [r['ratio'] for r in c7], '^', ls='none', ms=3.4, color='#b0306a', mec='white',
+              mew=0.3, label='circle', zorder=4)
     x = np.array([0.02, 1.0])
     a3.loglog(x, x, color=INK2, lw=0.7, ls=(0, (3, 2)), zorder=0)
-    a3.set_xlabel(r'Factor $\lambda/(\lambda+\Lambda\lambda_2(L))$'); a3.set_ylabel('Measured ratio')
-    a3.legend(loc='upper left', handlelength=1.0, handletextpad=0.3, fontsize=5.6, labelspacing=0.15)
+    a3.set_xlabel('Predicted ratio'); a3.set_ylabel('Measured ratio')
+    a3.legend(loc='upper left', handlelength=1.0, handletextpad=0.3, fontsize=5.4, labelspacing=0.12)
     a3.set_xlim(0.02, 1.2); a3.set_ylim(0.02, 1.2)
-    for a, t in zip((a2, a3), ('(a)', '(b)')):
+    for a, t in zip((a1, a3), ('(a)', '(b)')):
         tag(a, t)
     fig.savefig(os.path.join(OUT, 'fig_kin_cdc.pdf'))
     plt.close(fig)

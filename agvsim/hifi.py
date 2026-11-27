@@ -286,11 +286,13 @@ class HifiSim:
             wref = (Vx * Ay - Vy * Ax) / vref ** 2
             err = eps
             bcast = zeta + eps
-        else:                                       # 'uncoupled' or 'direct'
+        else:                                       # 'uncoupled', 'direct' or 'highgain'
             u = np.zeros((N, 2))
             e = P - pe
             if typ == 'direct':
                 err = e + C['c'] * (dact[:, None] * e - hold_sum)
+            elif typ == 'highgain':                 # gains of the direct coupling, (1 + c d_i), without neighbor data
+                err = e * (1.0 + C['c'] * self.A.sum(1))[:, None]
             else:
                 err = e
             vref, thref, wref = vr, thr, wr

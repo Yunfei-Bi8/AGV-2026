@@ -115,5 +115,5 @@ def tuned_ctrl(typ):
     if typ == 'uncoupled' or not os.path.exists(p):
         return base
     choice = json.load(open(p))
-    base.update(choice.get(typ, {}))
+    base.update(choice.get('direct' if typ == 'highgain' else typ, {}))   # 'highgain': the gain of the direct coupling
     return base

@@ -1,4 +1,5 @@
-"""Every number quoted in Section V of the paper (arXiv v2), recomputed from the stored results; nothing is simulated.
+"""Every number quoted in Sections IV and V of the paper (arXiv v2 and the CDC version), recomputed from the stored
+results; nothing is simulated.
 
     python3 paper/paper_numbers.py
 
@@ -158,3 +159,103 @@ for p in glob.glob(os.path.join(RESR, '*.json')):
                 casc += 1
                 fail += bool(m.get('failed'))
 out('V-B', 'cascade runs in all robustness experiments; failed', f'{casc}; {fail}', 'results/robust/*.json')
+
+
+# ---------------------------------------------------------------- additions of arXiv v2 / CDC version
+from agvsim import theory as th                       # noqa: E402
+from agvsim import runner                              # noqa: E402
+from agvsim.references import make_reference, TRIANGLE, vehicle_refs   # noqa: E402
+
+rate = []
+for name in ('circle', 'figure8', 'warehouse'):
+    ref, T = make_reference(name)
+    kr, vmin = 0.0, np.inf
+    for t in np.arange(0.0, T, 2e-3):
+        _, _, _, vr, wr, _ = vehicle_refs(ref.centre(t, np.zeros(2)), TRIANGLE)
+        kr, vmin = max(kr, float(np.max(np.abs(wr) / vr))), min(vmin, float(vr.min()))
+    rate.append((name, kr, vmin, float(th.asymptotic_rate(0.7, 3.0, kr, vmin))))
+out('IV/V-A', 'kappa_r of the planner references (circle, figure-8, warehouse)', ' '.join(f'{r[1]:.2f}' for r in rate) + ' 1/m',
+    'references.py (dense evaluation)')
+out('IV/V-A', 'asymptotic rate eta_1^inf (Remark 2, ell = 1 m)', ' '.join(f'{r[3]:.4f}' for r in rate) + ' 1/s', 'theory.asymptotic_rate')
+for w in (0.175, 0.68):
+    out('IV', f'|h_3(j w)| at w = {w} rad/s, tau = 0..3 s', '-'.join(f"{abs(th.filter_response(w, tau, 1, 1, 5, 2, -1)):.3f}" for tau in (0.0, 3.0)),
+        'theory.filter_response (Remark 3)')
+ws = np.linspace(1e-3, 30, 30001)
+sup = {tau: np.abs(th.filter_response(ws, tau, 1, 1, 5, 2, -1)) for tau in (0.0, 0.1, 0.5, 1.0, 2.0, 3.0)}
+out('IV', 'sup_w |h_3| for tau = 0 | max over tau = 0.1..3 s', f"{sup[0.0].max():.3f} | {max(v.max() for v in sup.values()):.3f}", 'theory.filter_response')
+out('IV', '|h_3| > 1 from (rad/s), tau = 0..3 s', f"{min(ws[v > 1].min() for v in sup.values()):.2f}-{max(ws[v > 1].min() for v in sup.values()):.2f}",
+    'theory.filter_response')
+e7 = load(RES, 'e7_curved.json')['runs']
+for route in ('line', 'circle'):
+    dev = max(abs(r['ratio'] / r['H_abs'] - 1) for r in e7 if r['route'] == route)
+    out('V-A', f'E7 {route}: largest |measured ratio / predicted - 1|', f'{dev:.1e} ({sum(r["route"] == route for r in e7)} runs)', 'e7_curved.json')
+out('V-A', 'E7 circle: measured ratio, Lam = 10, tau = 0.07 / 3.01 s', ' / '.join(f"{r['ratio']:.4f}" for r in e7 if r['route'] == 'circle' and r['Lam'] == 10.0 and r['h'] in (0.06, 3.0)),
+    'e7_curved.json')
+out('V-A', 'E7: local errors below e-bar, chi = 1 (all runs)', f"{max(r['eps_max_mm'] for r in e7):.1f} mm, chi_min {min(r['chi_min'] for r in e7):.3f}", 'e7_curved.json')
+for cd in (4.0, 6.0, 8.0):
+    out('IV', f'delay margin of the linearized direct coupling, c d = {cd:g}, v = 0.6 m/s', f"{th.direct_delay_margin(0.7, 3.0, cd, 0.6):.2f} s",
+        'theory.direct_delay_margin (Proposition 2)')
+out('IV', 'threshold 2 psi (1 + psi), psi = 0.7', f'{2 * 0.7 * 1.7:.2f}', 'Proposition 2')
+doc10, ts10 = runner.load('r10_delay_margin')
+agree = total = 0
+cas_ok, cas_n = True, 0
+mism = []
+for i, (j, m) in enumerate(zip(doc10['jobs'], doc10['metrics'])):
+    t, e = ts10[f'{i}/t'], ts10[f'{i}/track_max']
+    late, mid = e[t >= 110.0 - 1e-9].max(), e[(t >= 55.0 - 1e-9) & (t <= 65.0 + 1e-9)].max()
+    ok = (not m.get('failed')) and bool(late < 1e-6 or late < mid)
+    if j['ctrl']['type'] == 'cascade':
+        cas_ok &= ok; cas_n += 1
+        continue
+    unstable = th.direct_rhp_roots(0.7, 3.0, 2 * j['ctrl']['c'], 0.6, j['latency'] + 0.025) > 0
+    total += 1
+    agree += (ok != unstable)
+    if ok == unstable:
+        mism.append((j['ctrl']['c'], j['latency'], j['seed'], 'decayed' if ok else 'did not decay'))
+out('V-A', 'R10 direct coupling: runs whose outcome agrees with Proposition 2', f'{agree}/{total}', 'r10_delay_margin.json + theory.direct_rhp_roots')
+out('V-A', 'R10 direct coupling: disagreeing runs (c, latency, seed, outcome)', str(sorted(set(mism)))[:200], 'r10_delay_margin.json')
+out('V-A', 'R10 cascade (Lam = 1, 4, 8): all runs decayed', f'{cas_ok} ({cas_n} runs)', 'r10_delay_margin.json')
+out('V-A', 'R10 failed runs (tracking error above 3 m)', f"{sum(bool(m.get('failed')) for m in doc10['metrics'])}/{len(doc10['metrics'])}", 'r10_delay_margin.json')
+_, _, r11 = mfr.rows('r11_highgain')
+_, _, r6r = mfr.rows('r6_events')
+mean = lambda rs, k: float(np.nanmean([r[k] for r in rs]))
+for case in ('traction', 'stop', 'switching'):
+    hg = [r for r in r11 if r.get('exp') == 'r6' and r['case'] == case]
+    un = [r for r in r6r if r['case'] == case and r['type'] == 'uncoupled']
+    out('V-B', f'{case}, high gain vs none: peak, formation IAE, tracking IAE',
+        ', '.join(pct(mean(hg, k) / mean(un, k) - 1) for k in ('ev_peak', 'ev_iae', 'ev_track_iae')), 'r11_highgain.json, r6 (means)')
+    for typ in ('direct', 'cascade'):
+        rr = [r for r in r6r if r['case'] == case and r['type'] == typ]
+        hb = {r['seed']: r for r in hg}
+        out('V-B', f'{case}, {typ} vs high gain: formation IAE ratio of means; lower on seeds',
+            f"{mean(rr, 'ev_iae') / mean(hg, 'ev_iae'):.3f}; {sum(r['ev_iae'] < hb[r['seed']]['ev_iae'] for r in rr)}/{len(rr)}",
+            'r11_highgain.json, r6 (paired)')
+f11 = {}
+for r in r11:
+    if r.get('exp') == 'r0':
+        f11.setdefault(r['ctrl']['c'], []).append(bool(r['m_failed']))
+out('V-B', 'tuning grid, high gain: failures per c', ' '.join(f'{c:g}:{sum(v)}' for c, v in sorted(f11.items())), 'r11_highgain.json')
+for e, lab in (('r7', 'unit'), ('r7b', 'normalized')):
+    rr = [r for r in r11 if r.get('exp') == e and r['N'] in (8, 12)]
+    out('V-B', f'complete graphs N = 8, 12, {lab} weights, high gain: failed', f"{sum(bool(r['m_failed']) for r in rr)}/{len(rr)}", 'r11_highgain.json')
+_, _, r12 = mfr.rows('r12_age_gate')
+b12 = np.median([r['ev_iae'] for r in r3r if r['type'] == 'uncoupled'])
+for typ in ('cascade', 'direct'):
+    out('V-B', f'age gate 1.5 s, {typ}: ratio at 0.01 | 0.1 | 0.3 | 1 | 2 | 4 s', ' | '.join(
+        f"{np.median([r['ev_iae'] for r in r12 if r['type'] == typ and abs(r['level'] - l) < 1e-9]) / b12:.3f}" for l in (0.01, 0.1, 0.3, 1.0, 2.0, 4.0)),
+        'r12_age_gate.json (ratio of medians)')
+out('V-B', 'age gate: failed runs', f"{sum(bool(r['m_failed']) for r in r12)}/{len(r12)}", 'r12_age_gate.json')
+r2r = mfr.rows('r2_realistic')[2] + [r for r in r11 if r.get('exp') == 'r2']
+for typ in ('uncoupled', 'highgain', 'direct', 'cascade'):
+    rr = [r for r in r2r if r['case'] == 'nominal' and r['scen'] == 'warehouse' and r['type'] == typ]
+    out('V-B', f'nominal, {typ}: RMS of dv/dt, heading RMS', f"{mean(rr, 'm_cmd_acc_rms'):.2f} m/s^2, {np.degrees(mean(rr, 'm_head_rms')):.2f} deg",
+        'r2_realistic.json, r11_highgain.json (means)')
+casc = fail = 0
+for p_ in glob.glob(os.path.join(RESR, '*.json')):
+    d_ = json.load(open(p_))
+    if isinstance(d_, dict) and 'jobs' in d_ and 'metrics' in d_:
+        for j, m in zip(d_['jobs'], d_['metrics']):
+            if j.get('ctrl', {}).get('type') == 'cascade':
+                casc += 1
+                fail += bool(m.get('failed'))
+out('V-B', 'cascade runs in all robustness experiments incl. R10, R12; failed', f'{casc}; {fail}', 'results/robust/*.json')

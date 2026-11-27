@@ -15,7 +15,8 @@ from common import RES, metrics_identical
 from agvsim import runner
 
 EXP = ['r0_tuning', 'r0b_direct_divergence', 'r1_paper_delays', 'r2_realistic', 'r3_network', 'r4_simreal',
-       'r5_domain_rand', 'r6_events', 'r7_scaling', 'r7b_normalised', 'r8_sensitivity', 'r9_numerics']
+       'r5_domain_rand', 'r6_events', 'r7_scaling', 'r7b_normalised', 'r8_sensitivity', 'r9_numerics',
+       'r10_delay_margin', 'r11_highgain', 'r12_age_gate']
 
 
 def _rerun(arg):
